@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Side Business Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%23171a23%22/%3E%3Cpath%20d%3D%22M16%204.5c4.2%204.2%206.2%207.2%206.2%2011.3A6.2%206.2%200%200%201%209.8%2016c0-2.1%201-3.8%202.6-5.3.2%201.6%201%202.4%201.9%202.8C13.7%2011.7%2013.9%209.2%2016%204.5z%22%20fill%3D%22%234cc9a0%22/%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2219.2%22%20r%3D%222.5%22%20fill%3D%22%236d8bff%22/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0f1117; --panel:#171a23; --panel2:#1d212c; --line:#2a2f3d;
+  --text:#e6e8ee; --muted:#9aa3b2; --accent:#6d8bff; --accent2:#4cc9a0;
+  --warn:#f0a14b; --danger:#f06a6a; --ok:#4cc9a0; --chip:#252a36;
+  --shadow:0 6px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:'Segoe UI',Roboto,system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--accent)}
+.app{display:flex;min-height:100vh}
+/* Sidebar */
+.sidebar{width:208px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0}
+.brand{padding:18px 16px;font-weight:700;font-size:16px;letter-spacing:.3px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--accent2);box-shadow:0 0 10px var(--accent2)}
+.nav{padding:8px;display:flex;flex-direction:column;gap:2px;flex:1;overflow:auto}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:none;color:var(--muted);padding:10px 12px;border-radius:8px;font-size:14px}
+.nav button:hover{background:var(--panel2);color:var(--text)}
+.nav button.active{background:var(--accent);color:#fff;font-weight:600}
+.nav .ico{width:18px;text-align:center}
+.storage{padding:10px 12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)}
+.storage .stat{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.storage .dotmini{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.storage .dotmini.on{background:var(--ok)}
+.storage .dotmini.save{background:var(--warn)}
+.storage button{width:100%;margin-top:4px;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:7px;border-radius:6px;font-size:11.5px}
+.storage button:hover{border-color:var(--accent)}
+/* Main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{padding:16px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;background:rgba(15,17,23,.85);backdrop-filter:blur(8px);z-index:5}
+.topbar h1{margin:0;font-size:20px;font-weight:650}
+.topbar .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+.content{padding:24px;max-width:1180px}
+/* Generic */
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{background:var(--accent);border:none;color:#fff;padding:9px 14px;border-radius:8px;font-weight:600;font-size:13px}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+.btn.ghost:hover{border-color:var(--accent)}
+.btn.sm{padding:6px 10px;font-size:12px}
+.btn.danger{background:var(--danger)}
+.iconbtn{background:transparent;border:1px solid var(--line);color:var(--muted);width:30px;height:30px;border-radius:6px;font-size:13px}
+.iconbtn:hover{border-color:var(--accent);color:var(--text)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.kpi .label{color:var(--muted);font-size:12px;margin-bottom:6px}
+.kpi .val{font-size:24px;font-weight:700}
+.kpi .val.pos{color:var(--ok)} .kpi .val.neg{color:var(--danger)}
+.kpi .sub{color:var(--muted);font-size:11.5px;margin-top:4px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:20px}
+.panel h2{margin:0 0 14px;font-size:15px;font-weight:650}
+.panel h2 .hint{font-weight:400;color:var(--muted);font-size:12px;margin-left:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;user-select:none}
+tbody tr:hover{background:var(--panel2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow:auto;border-radius:8px}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.b-Delivered{background:rgba(76,201,160,.16);color:#5fd6ad}
+.b-Shipped{background:rgba(109,139,255,.16);color:#93a8ff}
+.b-Pending{background:rgba(240,161,75,.16);color:#f0a14b}
+.b-InProgress{background:rgba(240,161,75,.16);color:#f0a14b}
+.b-Returned{background:rgba(240,106,106,.16);color:#f06a6a}
+.b-Cancelled{background:rgba(154,163,178,.16);color:#9aa3b2}
+.stock-ok{color:#5fd6ad} .stock-low{color:#f0a14b} .stock-out{color:#f06a6a}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:7px;font-size:13px;font-family:inherit}
+.statussel{padding:4px 22px 4px 9px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid transparent;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 11px) 9px,calc(100% - 7px) 9px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+.statussel:hover{border-color:var(--accent)}
+.statussel option{background:var(--panel2);color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+input[type=search]{min-width:200px}
+label.fld{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);min-width:0}
+label.fld input,label.fld select,label.fld textarea{color:var(--text);width:100%;min-width:0;max-width:100%}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px;overflow:auto}
+.modal-bg.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);width:100%;max-width:560px;padding:22px}
+.modal h3{margin:0 0 16px;font-size:17px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.modal .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.breakdown{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:14px;font-size:13px}
+.breakdown .ln{display:flex;justify-content:space-between;padding:4px 0;color:var(--muted)}
+.breakdown .ln span:last-child{color:var(--text);font-variant-numeric:tabular-nums}
+.breakdown .ln.total{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-weight:700;font-size:15px}
+.breakdown .ln.total span{color:var(--accent2)}
+.empty{color:var(--muted);text-align:center;padding:28px;font-size:13px}
+.pill{background:var(--chip);border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--muted)}
+.chartwrap{width:100%;overflow:auto}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.note{font-size:12px;color:var(--muted);line-height:1.6}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:11px 18px;border-radius:10px;box-shadow:var(--shadow);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:80;font-size:13px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.banner{background:rgba(109,139,255,.1);border:1px solid rgba(109,139,255,.4);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+.banner .x{flex-shrink:0}
+.subnav{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.subnav button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);padding:7px 14px;border-radius:8px;font-size:13px}
+.subnav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+@media(max-width:760px){.sidebar{width:60px}.brand span,.nav button span.lbl,.storage{display:none}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="dot"></span><span>Atelier</span><span id="brandVer" title="View changelog" style="margin-left:auto;font-size:11px;font-weight:400;color:var(--muted);cursor:pointer;padding:2px 7px;border:1px solid var(--line);border-radius:20px"></span></div>
+    <nav class="nav" id="nav">
+      <button data-view="dashboard" class="active"><span class="ico">📊</span><span class="lbl">Dashboard</span></button>
+      <button data-view="orders"><span class="ico">🧾</span><span class="lbl">Orders</span></button>
+      <button data-view="products"><span class="ico">📦</span><span class="lbl">Products</span></button>
+      <button data-view="inventory"><span class="ico">🕯️</span><span class="lbl">Inventory</span></button>
+      <button data-view="expenses"><span class="ico">💸</span><span class="lbl">Expenses</span></button>
+      <button data-view="platforms"><span class="ico">🛒</span><span class="lbl">Platforms</span></button>
+      <button data-view="settings"><span class="ico">⚙️</span><span class="lbl">Settings</span></button>
+    </nav>
+    <div class="storage">
+      <div class="stat"><span class="dotmini" id="storDot"></span><span id="storLabel">In-memory</span></div>
+      <button id="btnConnect">Connect data file</button>
+      <button id="btnExport">Export backup</button>
+      <button id="btnImport">Import backup</button>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="viewTitle">Dashboard</h1>
+        <div class="sub" id="viewSub">Income, expenses and profit overview</div>
+      </div>
+      <div class="row" style="align-items:center"><select id="yearSel" title="Year (older years are archived but still viewable)" style="font-size:13px"></select><div class="row" id="topActions"></div></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fileInput" accept="application/json" style="display:none">
+
+<script>
+const SEED = {
+  "version": 1,
+  "settings": {},
+  "platforms": [],
+  "geniusBands": [],
+  "products": [],
+  "orders": [],
+  "inventory": [],
+  "expenses": []
+};
+
+/* ============ State & persistence ============ */
+let state = null;
+let fileHandle = null;
+let usingFile = false;
+let saveTimer = null;
+const FSA = ('showSaveFilePicker' in window);
+let pendingHandle=null;
+let editedWhileDisconnected=false;
+const APP_VERSION='1.1.1';
+const CHANGELOG=[
+  {v:'1.1.1',date:'2026-06-02',notes:'Product/pack code is now editable when editing. Renaming a code checks for collisions and automatically remaps any pack components that referenced the old code.'},
+  {v:'1.1.0',date:'2026-06-02',notes:'Adopted semantic versioning: features bump the minor version, fixes bump the patch. This 1.1.0 rolls up the recent feature work (pack builder, inventory materials with automatic stock decrement, Trendyol shipping bands) and the product-breakdown cleanup. The 1.0.x history below is kept as-is.'},
+  {v:'1.0.14',date:'2026-06-02',notes:'Product expanded breakdown now shows the product-level price (costs + desired profit + PFA tax) without the channel-specific platform cut and Genius/shipping — those appear per channel in the Price-by-channel table below.'},
+  {v:'1.0.13',date:'2026-06-02',notes:'Fixed the Save settings button spacing in Settings (it was cramped against the status checkboxes).'},
+  {v:'1.0.12',date:'2026-06-02',notes:'Trendyol prices now include the platform shipping fee (Taxă de expediere) by sale-price band, mirroring how Emag Genius works. Genius still applies only to Emag. Added a Trendyol shipping bands editor in Settings; the Price-by-channel column shows Genius for Emag and shipping for Trendyol.'},
+  {v:'1.0.11',date:'2026-06-02',notes:'The app file no longer embeds any data — all products, platforms, inventory, orders and expenses live only in atelier-data.json. A fresh app starts empty; Reset now clears everything.'},
+  {v:'1.0.10',date:'2026-06-02',notes:'New expense no longer defaults its category to Materials — pick from the dropdown.'},
+  {v:'1.0.9',date:'2026-06-02',notes:'Desired profit and Genius tax labels are single-line so their inputs align with Packaging cost / their row.'},
+  {v:'1.0.8',date:'2026-06-02',notes:'Product editor layout: Additional cost aligns with Material cost, the inventory-materials list sits under them, and the Emag & Trendyol tiers share a row.'},
+  {v:'1.0.7',date:'2026-06-02',notes:'Inventory items now have a unit price. Products can list inventory materials used (with quantities) whose cost is added to the price alongside the manual Additional cost. Placing a new order automatically decreases the stock of those inventory items. Packs inherit their components materials.'},
+  {v:'1.0.6',date:'2026-06-02',notes:'Fixed modal layout overflow — long product names (e.g. packs) no longer push the right-hand fields outside the dialog.'},
+  {v:'1.0.5',date:'2026-06-02',notes:'Pack builder: packaging cost is now editable (auto-fills to the largest component box, override it for a bigger box).'},
+  {v:'1.0.4',date:'2026-06-02',notes:'Pack builder now has an editable Additional materials field (e.g. "3x tea light").'},
+  {v:'1.0.3',date:'2026-06-02',notes:'New pack builder — create a product from existing products + quantities. It sums material weight, build time and additional cost; keeps the highest material rate, packaging (one box) and Emag/Trendyol tiers; and prices it automatically. Packs cannot be used as components of another pack.'},
+  {v:'1.0.2',date:'2026-06-02',notes:'Expense category dropdown now lists the categories already used in your expenses (plus common defaults), instead of a fixed set.'},
+  {v:'1.0.1',date:'2026-06-02',notes:'Lighter build — sample orders/expenses are no longer bundled inside the app file (your data loads from atelier-data.json), dropping the file from ~160 KB to ~60 KB. “Reset to seeded data” now clears to an empty ledger.'},
+  {v:'1.0.0',date:'2026-06-02',notes:'First versioned release — dashboard with yearly archives, orders (inline status, product-scoped channels), per-product pricing (RON/kg material, PFA & Emag Genius, price-by-channel), inventory, expenses, platforms with PFA flag, daily auto-backups (rolling 7), file auto-save with one-click reconnect, and a collapsible, alphabetical product list.'}
+];
+function showChangelog(){
+  openModal(`<h3>Changelog <span style="font-weight:400;color:var(--muted);font-size:13px">v${APP_VERSION}</span></h3>
+    <div style="max-height:60vh;overflow:auto;margin-top:4px">${CHANGELOG.map(c=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div style="font-weight:650;font-size:14px">v${c.v}${c.date?` <span style="font-weight:400;color:var(--muted);font-size:12px">${c.date}</span>`:''}</div><div class="note" style="margin-top:4px">${escapeHtml(c.notes)}</div></div>`).join('')}</div>
+    <div class="actions"><button class="btn" onclick="closeModal()">Close</button></div>`);
+}
+
+function deepClone(o){return JSON.parse(JSON.stringify(o));}
+function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+/* IndexedDB to remember the file handle */
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('atelier-db',2);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('kv'))db.createObjectStore('kv');if(!db.objectStoreNames.contains('backups'))db.createObjectStore('backups');};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function idbSet(k,v){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});}
+async function idbGet(k){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('kv','readonly');const rq=t.objectStore('kv').get(k);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error);});}
+const MAX_BACKUPS=7;
+function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function isBackupKey(k){return /^\d{4}-\d{2}-\d{2}$/.test(k);}
+async function backupPut(k,v){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('backups','readwrite');t.objectStore('backups').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});}
+async function backupKeys(){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('backups','readonly');const rq=t.objectStore('backups').getAllKeys();rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>rej(rq.error);});}
+async function backupGet(k){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('backups','readonly');const rq=t.objectStore('backups').get(k);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error);});}
+async function backupDel(k){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('backups','readwrite');t.objectStore('backups').delete(k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});}
+async function makeBackup(){try{const key=todayKey();await backupPut(key,{date:key,ts:Date.now(),orders:(state.orders||[]).length,expenses:(state.expenses||[]).length,json:JSON.stringify(state)});let keys=(await backupKeys()).filter(isBackupKey).sort();while(keys.length>MAX_BACKUPS)await backupDel(keys.shift());return true;}catch(e){return false;}}
+async function maybeDailyBackup(){try{const keys=await backupKeys();if(keys.indexOf(todayKey())===-1)await makeBackup();}catch(e){}}
+async function loadBackupList(){const el=document.getElementById('backupList');if(!el)return;let keys;try{keys=(await backupKeys()).filter(isBackupKey).sort().reverse();}catch(e){el.textContent='Backups are not available in this browser.';return;}if(!keys.length){el.textContent='No backups yet — one is created automatically each day.';return;}const snaps=await Promise.all(keys.map(k=>backupGet(k)));el.innerHTML='<div class="tablewrap"><table><thead><tr><th>Date</th><th class="num">Orders</th><th class="num">Expenses</th><th></th></tr></thead><tbody>'+snaps.map(s=>`<tr><td>${s.date}${s.date===todayKey()?' <span class="pill">today</span>':''}</td><td class="num">${s.orders}</td><td class="num">${s.expenses}</td><td style="text-align:right"><button class="btn sm ghost" data-brestore="${s.date}">Restore</button> <button class="btn sm ghost" data-bdown="${s.date}">Download</button></td></tr>`).join('')+'</tbody></table></div>';el.querySelectorAll('[data-brestore]').forEach(b=>b.onclick=()=>restoreBackup(b.dataset.brestore));el.querySelectorAll('[data-bdown]').forEach(b=>b.onclick=()=>downloadBackup(b.dataset.bdown));}
+async function restoreBackup(key){const snap=await backupGet(key);if(!snap)return;openConfirm('Restore the backup from '+key+'? Your current data will be replaced. The current state is backed up first so you can undo.',async()=>{try{const keys=await backupKeys();if(keys.indexOf(todayKey())===-1)await makeBackup();state=migrate(JSON.parse(snap.json));save();toast('Restored backup from '+key);render();}catch(e){toast('Restore failed');}});}
+async function downloadBackup(key){const snap=await backupGet(key);if(!snap)return;const blob=new Blob([snap.json],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='atelier-backup-'+key+'.json';a.click();toast('Downloaded '+key);}
+
+function setStorageUI(){
+  const dot=document.getElementById('storDot');const lbl=document.getElementById('storLabel');const btn=document.getElementById('btnConnect');
+  if(dot)dot.className='dotmini on';if(lbl)lbl.textContent='Home Assistant';if(btn)btn.style.display='none';
+}
+function flashSaving(){const dot=document.getElementById('storDot');dot.className='dotmini save';}
+
+function migrate(d){
+  d.settings=Object.assign({currency:'RON',profitPerHour:4,pfaTaxRate:10,lowStockThreshold:5,incomeCountsStatuses:['Delivered','Shipped'],year:2026},d.settings||{});
+  d.platforms=d.platforms||[];d.geniusBands=d.geniusBands||[];d.products=d.products||[];
+  d.orders=d.orders||[];d.inventory=d.inventory||[];d.expenses=d.expenses||[];
+  d.platforms.forEach(p=>{if(p.pfa===undefined)p.pfa=/emag|trendyol|trendiol|olx/i.test(p.name);});
+  if(d.shippingBands===undefined)d.shippingBands=[{min:0,max:39.99,fee:3,tva:0,totalFee:3},{min:40,max:49.99,fee:4,tva:0,totalFee:4},{min:50,max:74.99,fee:5,tva:0,totalFee:5},{min:75,max:124.99,fee:8,tva:0,totalFee:8}];
+  d.products.forEach(p=>{if(!p.tiers){p.tiers={};if(p.emagPlatform)p.tiers[familyOf(p.emagPlatform)]=p.emagPlatform;if(p.trendyolPlatform)p.tiers[familyOf(p.trendyolPlatform)]=p.trendyolPlatform;}if(!p.defaultPlatform||!d.platforms.some(pl=>pl.name===p.defaultPlatform)){p.defaultPlatform=p.tiers['Emag']||Object.values(p.tiers)[0]||(d.platforms[0]&&d.platforms[0].name)||'';}if(p.materialPricePerKg===undefined||p.materialPricePerKg===''){p.materialPricePerKg=((+p.materialWeight>0)&&(+p.materialCost>0))?Math.round((+p.materialCost)/((+p.materialWeight)/1000)*100)/100:100;}if(!p.materials)p.materials=[];});
+  d.inventory.forEach(it=>{if(!it.id)it.id=uid();if(it.price===undefined)it.price=0;});
+  d.orders.forEach(o=>{if(!o.id)o.id=uid();});
+  return d;
+}
+
+async function save(){
+  try{localStorage.setItem('atelier-data',JSON.stringify(state));}catch(e){}
+  const dot=document.getElementById('storDot');if(dot)dot.className='dotmini save';
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{const r=await fetch('data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});if(dot)dot.className=r.ok?'dotmini on':'dotmini';}
+    catch(e){if(dot)dot.className='dotmini';}
+  },400);
+}
+
+async function loadInitial(){
+  try{
+    const r=await fetch('data',{cache:'no-store'});
+    if(r.ok){const txt=await r.text();const j=(txt&&txt.trim())?JSON.parse(txt):null;if(j&&typeof j==='object'){state=migrate(j);return;}}
+  }catch(e){}
+  try{const ls=localStorage.getItem('atelier-data');if(ls){state=migrate(JSON.parse(ls));return;}}catch(e){}
+  state=migrate(deepClone(SEED));
+}
+
+async function connectFile(){
+  if(!FSA){toast('Your browser does not support direct file save. Use Export/Import instead.');return;}
+  try{
+    const choice = await chooseNewOrOpen();
+    if(choice==='open'){
+      const [h]=await window.showOpenFilePicker({types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+      const perm=await h.requestPermission({mode:'readwrite'});
+      if(perm!=='granted'){toast('Permission denied');return;}
+      const f=await h.getFile();const txt=await f.text();
+      state=migrate(JSON.parse(txt));fileHandle=h;usingFile=true;
+      await idbSet('fileHandle',h);
+    } else if(choice==='new'){
+      const h=await window.showSaveFilePicker({suggestedName:'atelier-data.json',types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+      fileHandle=h;usingFile=true;
+      await idbSet('fileHandle',h);
+      await save();
+    } else return;
+    pendingHandle=null;editedWhileDisconnected=false;setStorageUI();render();toast('Data file connected ✓');
+  }catch(e){
+    if(e.name==='AbortError')return;
+    if(e.name==='SecurityError'||e.name==='NotAllowedError'){toast('Direct file access is blocked here. Use Export/Import for backups, or open the app from a local web server.');}
+    else{toast('Error: '+e.message);}
+  }
+}
+
+async function reconnect(){
+  let h=null;
+  try{h=await idbGet('fileHandle');}catch(e){}
+  if(!h){return connectFile();}
+  try{
+    const perm=await h.requestPermission({mode:'readwrite'});
+    if(perm!=='granted'){toast('Permission not granted. Click reconnect and choose Allow.');return;}
+    if(editedWhileDisconnected){
+      const choice=await chooseKeepOrLoad();
+      if(choice===null)return;
+      if(choice==='keep'){fileHandle=h;usingFile=true;pendingHandle=null;editedWhileDisconnected=false;await save();}
+      else{const file=await h.getFile();const txt=await file.text();state=migrate(JSON.parse(txt));fileHandle=h;usingFile=true;pendingHandle=null;editedWhileDisconnected=false;}
+    } else {
+      const file=await h.getFile();const txt=await file.text();state=migrate(JSON.parse(txt));fileHandle=h;usingFile=true;pendingHandle=null;
+    }
+    await idbSet('fileHandle',h);
+    setStorageUI();render();toast('Reconnected ✓');
+  }catch(e){if(e.name!=='AbortError')toast('Reconnect failed: '+e.message);}
+}
+function handleConnectButton(){if(usingFile)return connectFile();if(pendingHandle)return reconnect();return connectFile();}
+function showReconnectPrompt(){}
+function chooseKeepOrLoad(){
+  return new Promise(res=>{
+    let done=false;const fin=v=>{if(done)return;done=true;modalBg._cancel=null;closeModal();res(v);};
+    openModal(`<h3>Reconnect data file</h3>
+      <p class="note">You changed data while the file was disconnected. Keep your current changes and write them to the file, or discard them and load the version stored in the file?</p>
+      <div class="actions"><button class="btn ghost" id="rkLoad">Load file version</button><button class="btn" id="rkKeep">Keep my changes</button></div>`);
+    document.getElementById('rkKeep').onclick=()=>fin('keep');
+    document.getElementById('rkLoad').onclick=()=>fin('load');
+    modalBg._cancel=()=>fin(null);
+  });
+}
+function chooseNewOrOpen(){
+  return new Promise(res=>{
+    let done=false;
+    const finish=val=>{if(done)return;done=true;modalBg._cancel=null;closeModal();res(val);};
+    openModal(`<h3>Connect a data file</h3>
+      <p class="note">Choose an existing <b>atelier-data.json</b> to continue from, or create a new one (seeded with your current data). After this, every change auto-saves to that file.</p>
+      <div class="actions">
+        <button class="btn ghost" id="cChoiceCancel">Cancel</button>
+        <button class="btn ghost" id="cChoiceOpen">Open existing…</button>
+        <button class="btn" id="cChoiceNew">Create new…</button>
+      </div>`);
+    document.getElementById('cChoiceCancel').onclick=()=>finish(null);
+    document.getElementById('cChoiceOpen').onclick=()=>finish('open');
+    document.getElementById('cChoiceNew').onclick=()=>finish('new');
+    modalBg._cancel=()=>finish(null);
+  });
+}
+
+/* ============ Helpers ============ */
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function cur(){return state.settings.currency||'RON';}
+function fmt(n){return (Math.round((+n||0)*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function money(n){return fmt(n)+' '+cur();}
+function monthOf(iso){return iso?parseInt(iso.slice(5,7),10)-1:null;}
+function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function isEmag(name){return /emag/i.test(name||'');}
+function platformByName(n){return state.platforms.find(p=>p.name===n);}
+function productByName(n){return state.products.find(p=>p.name===n);}
+function productsByPopularity(){const cnt={};state.orders.forEach(o=>{cnt[o.product]=(cnt[o.product]||0)+1;});return state.products.slice().sort((a,b)=>(cnt[b.name]||0)-(cnt[a.name]||0)||a.name.localeCompare(b.name));}
+function familyOf(name){return ((name||'').replace(/\s*\d+\s*$/,'').trim())||(name||'');}
+function platformFamilies(){const fam={},order=[];state.platforms.forEach(p=>{const f=familyOf(p.name);if(!fam[f]){fam[f]=[];order.push(f);}fam[f].push(p);});return order.map(f=>[f,fam[f]]);}
+function multiFamilies(){return platformFamilies().filter(fa=>fa[1].length>1);}
+function resolvedChannelName(p,f,arr){if(arr.length===1)return arr[0].name;const sel=p.tiers&&p.tiers[f];return (sel&&arr.some(x=>x.name===sel))?sel:arr[0].name;}
+function channelsForProduct(p){const out=[];platformFamilies().forEach(fa=>{out.push(fa[1].length===1?fa[1][0].name:resolvedChannelName(p,fa[0],fa[1]));});return out;}
+function defaultChannelFor(p){const fams=platformFamilies();const emag=fams.find(fa=>fa[0].toLowerCase()==='emag');if(emag)return resolvedChannelName(p,emag[0],emag[1]);return (p&&p.defaultPlatform)||(channelsForProduct(p)[0]||'');}
+function platformOptions(p,selected){let names=p?channelsForProduct(p):[];if(!names.length)names=state.platforms.map(x=>x.name);if(selected&&names.indexOf(selected)===-1)names=[selected].concat(names);return names.map(n=>`<option ${selected===n?'selected':''}>${escapeHtml(n)}</option>`).join('');}
+function primaryPlatform(p){if(p.defaultPlatform&&platformByName(p.defaultPlatform))return p.defaultPlatform;if(p.tiers){for(const k in p.tiers){if(platformByName(p.tiers[k]))return p.tiers[k];}}return state.platforms[0]?state.platforms[0].name:'';}
+function primaryTierVal(){const sels=document.querySelectorAll('.p_tier');for(const s of sels){if(/emag/i.test(s.value))return s.value;}return sels[0]?sels[0].value:(state.platforms[0]?state.platforms[0].name:'');}
+function buildChannels(p){const groups=[];platformFamilies().forEach(fa=>{const name=resolvedChannelName(p,fa[0],fa[1]);const c=computePrice(p,name);const sig=Math.round(c.final*100)+'|'+Math.round(c.cut*1e4)+'|'+Math.round(c.genius*100)+'|'+Math.round(c.pfaAmt*100);let g=groups.find(x=>x.sig===sig);if(!g){g={sig,names:[],c:c};groups.push(g);}g.names.push(name);});return groups;}
+
+/* ============ Pricing engine ============ */
+function geniusFor(price){
+  const b=state.geniusBands.find(b=>price>=b.min && price<=b.max);
+  return b?b.totalTax:0;
+}
+function shippingFor(price){const bs=state.shippingBands||[];const b=bs.find(x=>price>=x.min&&price<=x.max);if(b)return b.totalFee!=null?b.totalFee:(+b.fee||0);let top=null;bs.forEach(x=>{if(price>x.max&&(!top||x.max>top.max))top=x;});return top?(top.totalFee!=null?top.totalFee:(+top.fee||0)):0;}
+function materialCostOf(p){if(p&&p.materialPricePerKg!=null&&p.materialPricePerKg!==''){return (+p.materialWeight||0)/1000*(+p.materialPricePerKg||0);}return (+(p&&p.materialCost)||0);}
+function invById(id){return (state.inventory||[]).find(x=>x.id===id);}
+function materialsCost(materials){let s=0;(materials||[]).forEach(m=>{const it=invById(m.invId);if(it)s+=(+it.price||0)*(+m.qty||0);});return s;}
+function additionalCostOf(p){return p?((+p.additionalCost||0)+materialsCost(p.materials)):0;}
+function computePrice(prod, platformName){
+  const pf=platformByName(platformName)||{cut:0,fees:0,name:platformName||''};
+  const base=materialCostOf(prod)+additionalCostOf(prod)+(+prod.packagingCost||0);
+  const profit=(prod.desiredProfit!=null && prod.desiredProfit!=='')?(+prod.desiredProfit):((+state.settings.profitPerHour||0)*(+prod.buildTime||0));
+  const cut=(+pf.cut||0)/100;
+  const pfa=(pf.pfa?(+state.settings.pfaTaxRate||0)/100:0);
+  const fees=(+pf.fees||0);
+  const denom=Math.max(0.0001,1-cut-pfa);
+  const emag=isEmag(pf.name);
+  const trendyol=/trendyol|trendiol/i.test(pf.name);
+  let genius=0,shipping=0;
+  if(emag){
+    if(prod.geniusOverride!=null && prod.geniusOverride!==''){genius=+prod.geniusOverride;}
+    else{
+      let g=0;
+      for(let i=0;i<6;i++){const f=(base+profit+g+fees)/denom;const ng=geniusFor(f);if(ng===g)break;g=ng;}
+      genius=g;
+    }
+  } else if(trendyol){
+    let g=0;
+    for(let i=0;i<6;i++){const f=(base+profit+g+fees)/denom;const ng=shippingFor(f);if(ng===g)break;g=ng;}
+    shipping=g;
+  }
+  const feeAmt=genius+shipping;
+  const final=(base+profit+feeAmt+fees)/denom;
+  return {base,profit,genius,shipping,fee:feeAmt,fees,cut,pfa,cutAmt:final*cut,pfaAmt:final*pfa,final};
+}
+
+/* ============ Aggregations ============ */
+function orderTotal(o){return (+o.itemSellPrice||0)*(+o.quantity||0);}
+function countsAsIncome(o){return state.settings.incomeCountsStatuses.includes(o.status);}
+function yearOf(iso){return iso?parseInt(iso.slice(0,4),10):null;}
+function currentYear(){return new Date().getFullYear();}
+let viewYear=currentYear();
+function inViewYear(iso){return viewYear==='all'?true:yearOf(iso)===viewYear;}
+function yearLabel(){return viewYear==='all'?'All years':String(viewYear);}
+function availableYears(){const ys=new Set();state.orders.forEach(o=>{const y=yearOf(o.orderDate);if(y)ys.add(y);});state.expenses.forEach(e=>{const y=yearOf(e.date);if(y)ys.add(y);});ys.add(currentYear());return [...ys].sort((a,b)=>b-a);}
+function ordersForYear(){return state.orders.filter(o=>inViewYear(o.orderDate));}
+function expensesForYear(){return state.expenses.filter(e=>inViewYear(e.date));}
+function monthlyAgg(){
+  const inc=Array(12).fill(0),exp=Array(12).fill(0);
+  state.orders.forEach(o=>{if(!inViewYear(o.orderDate))return;const m=monthOf(o.orderDate);if(m!=null&&countsAsIncome(o))inc[m]+=orderTotal(o);});
+  state.expenses.forEach(e=>{if(!inViewYear(e.date))return;const m=monthOf(e.date);if(m!=null)exp[m]+=(+e.cost||0);});
+  return {inc,exp};
+}
+function ytd(){
+  const {inc,exp}=monthlyAgg();
+  const income=inc.reduce((a,b)=>a+b,0),expenses=exp.reduce((a,b)=>a+b,0);
+  return {income,expenses,profit:income-expenses};
+}
+
+/* ============ Rendering ============ */
+const content=document.getElementById('content');
+let currentView='dashboard';
+const VIEWS={
+  dashboard:['Dashboard','Income, expenses and profit overview'],
+  orders:['Orders','Track every order and its status'],
+  products:['Products & Pricing','Define products and compute sale prices per platform'],
+  inventory:['Inventory','LED candles and consumables stock'],
+  expenses:['Expenses','Every business expense'],
+  platforms:['Platforms','Selling channels, cuts and fees'],
+  settings:['Settings','Rates, tax, Genius bands and data']
+};
+function setView(v){
+  currentView=v;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  document.getElementById('viewTitle').textContent=VIEWS[v][0];
+  document.getElementById('viewSub').textContent=VIEWS[v][1];
+  render();
+}
+function syncYearSelector(){
+  const sel=document.getElementById('yearSel');if(!sel)return;
+  const years=availableYears();
+  if(viewYear!=='all'&&years.indexOf(viewYear)===-1)viewYear=currentYear();
+  const yearViews={dashboard:1,orders:1,expenses:1};
+  sel.style.display=yearViews[currentView]?'':'none';
+  sel.innerHTML=years.map(y=>`<option value="${y}" ${viewYear===y?'selected':''}>${y}${y===currentYear()?' · current':' · archived'}</option>`).join('')+`<option value="all" ${viewYear==='all'?'selected':''}>All years</option>`;
+  sel.onchange=()=>{viewYear=(sel.value==='all'?'all':+sel.value);render();};
+}
+function render(){
+  document.getElementById('topActions').innerHTML='';
+  syncYearSelector();
+  ({dashboard:renderDashboard,orders:renderOrders,products:renderProducts,inventory:renderInventory,expenses:renderExpenses,platforms:renderPlatforms,settings:renderSettings}[currentView])();
+}
+function topBtn(label,fn){const b=document.createElement('button');b.className='btn';b.textContent=label;b.onclick=fn;document.getElementById('topActions').appendChild(b);}
+
+/* ---- Dashboard ---- */
+function renderDashboard(){
+  const {inc,exp}=monthlyAgg();const y=ytd();
+  const yr=ordersForYear();
+  const delivered=yr.filter(o=>o.status==='Delivered').length;
+  const returned=yr.filter(o=>o.status==='Returned').length;
+  const totalOrders=yr.length;
+  const returnRate=totalOrders?(returned/totalOrders*100):0;
+  const low=state.inventory.filter(i=>i.qty<=state.settings.lowStockThreshold);
+  // revenue by product (selected year)
+  const byProd={};
+  yr.filter(countsAsIncome).forEach(o=>{byProd[o.product]=(byProd[o.product]||0)+orderTotal(o);});
+  const archived=(viewYear!=='all'&&viewYear<currentYear());
+  const topProd=Object.entries(byProd).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  content.innerHTML=`
+  ${archived?`<div class="banner" style="background:rgba(240,161,75,.1);border-color:rgba(240,161,75,.4)"><div>📦 Viewing <b>archived year ${viewYear}</b>. Older years stay here for reference — nothing is deleted. Switch back to <b>${currentYear()}</b> in the year selector for the active year.</div></div>`:''}
+  <div class="cards">
+    <div class="kpi"><div class="label">Income (${yearLabel()})</div><div class="val">${money(y.income)}</div><div class="sub">${state.settings.incomeCountsStatuses.join(' + ')} orders</div></div>
+    <div class="kpi"><div class="label">Expenses (${yearLabel()})</div><div class="val">${money(y.expenses)}</div><div class="sub">${expensesForYear().length} entries</div></div>
+    <div class="kpi"><div class="label">Net (${yearLabel()})</div><div class="val ${y.profit>=0?'pos':'neg'}">${money(y.profit)}</div><div class="sub">Income − expenses</div></div>
+    <div class="kpi"><div class="label">Orders (${yearLabel()})</div><div class="val">${totalOrders}</div><div class="sub">${delivered} delivered · ${returned} returned</div></div>
+    <div class="kpi"><div class="label">Return rate</div><div class="val">${fmt(returnRate)}%</div><div class="sub">of ${yearLabel()} orders</div></div>
+  </div>
+  ${low.length?`<div class="banner"><div>⚠️ <b>${low.length}</b> inventory item(s) at or below the reorder threshold (${state.settings.lowStockThreshold}): ${low.map(i=>escapeHtml(i.name)+' ('+i.qty+')').join(', ')}</div><button class="btn sm ghost x" onclick="setView('inventory')">View</button></div>`:''}
+  <div class="panel">
+    <h2>Monthly income vs expenses <span class="hint">${yearLabel()}</span></h2>
+    <div class="chartwrap">${barChart(inc,exp)}</div>
+    <div class="legend"><span><i style="background:var(--accent2)"></i>Income</span><span><i style="background:var(--danger)"></i>Expenses</span><span><i style="background:var(--accent)"></i>Net</span></div>
+  </div>
+  <div class="row" style="align-items:flex-start">
+    <div class="panel" style="flex:1;min-width:320px">
+      <h2>Monthly breakdown</h2>
+      <div class="tablewrap"><table><thead><tr><th>Month</th><th class="num">Income</th><th class="num">Expenses</th><th class="num">Net</th></tr></thead><tbody>
+      ${MONTHS.map((m,i)=>`<tr><td>${m}</td><td class="num">${fmt(inc[i])}</td><td class="num">${fmt(exp[i])}</td><td class="num" style="color:${inc[i]-exp[i]>=0?'var(--ok)':'var(--danger)'}">${fmt(inc[i]-exp[i])}</td></tr>`).join('')}
+      <tr style="font-weight:700"><td>Total</td><td class="num">${fmt(y.income)}</td><td class="num">${fmt(y.expenses)}</td><td class="num" style="color:${y.profit>=0?'var(--ok)':'var(--danger)'}">${fmt(y.profit)}</td></tr>
+      </tbody></table></div>
+    </div>
+    <div class="panel" style="flex:1;min-width:320px">
+      <h2>Top products by revenue</h2>
+      ${topProd.length?`<div class="tablewrap"><table><thead><tr><th>Product</th><th class="num">Revenue</th></tr></thead><tbody>
+      ${topProd.map(([p,v])=>`<tr><td>${escapeHtml(p)}</td><td class="num">${money(v)}</td></tr>`).join('')}
+      </tbody></table></div>`:'<div class="empty">No orders yet</div>'}
+    </div>
+  </div>`;
+}
+function barChart(inc,exp){
+  const W=720,H=240,pad=34,bw=W/12;
+  const max=Math.max(1,...inc,...exp);
+  const y=v=>H-pad-(v/max)*(H-2*pad);
+  let bars='';
+  for(let i=0;i<12;i++){
+    const cx=i*bw+bw/2;
+    const w=10;
+    bars+=`<rect x="${cx-w-1}" y="${y(inc[i])}" width="${w}" height="${H-pad-y(inc[i])}" fill="var(--accent2)" rx="2"/>`;
+    bars+=`<rect x="${cx+1}" y="${y(exp[i])}" width="${w}" height="${H-pad-y(exp[i])}" fill="var(--danger)" rx="2"/>`;
+    bars+=`<text x="${cx}" y="${H-pad+14}" fill="var(--muted)" font-size="10" text-anchor="middle">${MONTHS[i].slice(0,3)}</text>`;
+  }
+  // net line
+  let pts='';for(let i=0;i<12;i++){const cx=i*bw+bw/2;pts+=`${cx},${y(inc[i]-exp[i]>0?inc[i]-exp[i]:0)} `;}
+  return `<svg viewBox="0 0 ${W} ${H}" style="min-width:680px;width:100%;height:${H}px">
+    <line x1="${pad}" y1="${H-pad}" x2="${W}" y2="${H-pad}" stroke="var(--line)"/>
+    <text x="2" y="${pad}" fill="var(--muted)" font-size="10">${fmt(max)}</text>
+    ${bars}
+  </svg>`;
+}
+
+/* ---- Orders ---- */
+let orderFilters={q:'',status:'',platform:'',month:'',sort:'orderDate',dir:-1};
+function renderOrders(){document.getElementById('topActions').innerHTML='';
+  topBtn('+ New order',()=>orderModal());
+  const statuses=['Pending','In Progress','Shipped','Delivered','Returned','Cancelled'];
+  let rows=ordersForYear();
+  const f=orderFilters;
+  if(f.q)rows=rows.filter(o=>(o.product+' '+o.pointOfContact+' '+o.notes).toLowerCase().includes(f.q.toLowerCase()));
+  if(f.status)rows=rows.filter(o=>o.status===f.status);
+  if(f.platform)rows=rows.filter(o=>o.platform===f.platform);
+  if(f.month!=='')rows=rows.filter(o=>monthOf(o.orderDate)==+f.month);
+  rows.sort((a,b)=>{let x=a[f.sort],y=b[f.sort];if(f.sort==='itemSellPrice'){x=orderTotal(a);y=orderTotal(b);}if(x<y)return -1*f.dir;if(x>y)return 1*f.dir;return 0;});
+  const sumTotal=rows.reduce((s,o)=>s+orderTotal(o),0);
+  content.innerHTML=`
+  <div class="filters">
+    <input type="search" id="oq" placeholder="Search product / contact / notes" value="${escapeHtml(f.q)}">
+    <select id="ostatus"><option value="">All statuses</option>${statuses.map(s=>`<option ${f.status===s?'selected':''}>${s}</option>`).join('')}</select>
+    <select id="oplat"><option value="">All platforms</option>${state.platforms.map(p=>`<option ${f.platform===p.name?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select>
+    <select id="omonth"><option value="">All months</option>${MONTHS.map((m,i)=>`<option value="${i}" ${String(f.month)===String(i)?'selected':''}>${m}</option>`).join('')}</select>
+    <span class="pill">${rows.length} orders · ${money(sumTotal)}</span>
+  </div>
+  <div class="panel" style="padding:0">
+  <div class="tablewrap"><table><thead><tr>
+    <th data-s="orderDate">Date</th><th data-s="product">Product</th><th class="num" data-s="quantity">Qty</th>
+    <th data-s="platform">Platform</th><th data-s="status">Status</th><th class="num" data-s="itemSellPrice">Item / Total</th>
+    <th data-s="pointOfContact">Contact</th><th></th></tr></thead><tbody>
+    ${rows.length?rows.map(o=>`<tr>
+      <td>${o.orderDate||''}</td>
+      <td>${escapeHtml(o.product)}${o.notes?` <span class="pill" title="${escapeHtml(o.notes)}">note</span>`:''}</td>
+      <td class="num">${o.quantity}</td>
+      <td>${escapeHtml(o.platform)}</td>
+      <td><select class="statussel b-${(o.status||'').replace(' ','')}" data-status="${o.id}" title="Change status">${statuses.map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
+      <td class="num">${fmt(o.itemSellPrice)}<div style="color:var(--muted);font-size:11px">${fmt(orderTotal(o))}</div></td>
+      <td>${escapeHtml(o.pointOfContact||'')}</td>
+      <td style="text-align:right"><button class="iconbtn" data-edit="${o.id}">✎</button> <button class="iconbtn" data-del="${o.id}">🗑</button></td>
+    </tr>`).join(''):`<tr><td colspan="8" class="empty">No orders match.</td></tr>`}
+  </tbody></table></div></div>`;
+  document.getElementById('oq').oninput=e=>{f.q=e.target.value;renderOrders();};
+  document.getElementById('ostatus').onchange=e=>{f.status=e.target.value;renderOrders();};
+  document.getElementById('oplat').onchange=e=>{f.platform=e.target.value;renderOrders();};
+  document.getElementById('omonth').onchange=e=>{f.month=e.target.value;renderOrders();};
+  content.querySelectorAll('th[data-s]').forEach(th=>th.onclick=()=>{const s=th.dataset.s;if(f.sort===s)f.dir*=-1;else{f.sort=s;f.dir=1;}renderOrders();});
+  content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>orderModal(b.dataset.edit));
+  content.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>confirmDel('order',b.dataset.del));
+  content.querySelectorAll('select[data-status]').forEach(sel=>sel.onchange=()=>{const o=state.orders.find(x=>x.id===sel.dataset.status);if(o){o.status=sel.value;sel.className='statussel b-'+sel.value.replace(' ','');save();toast('Status → '+sel.value);}});
+}
+function orderModal(id){
+  const o=id?state.orders.find(x=>x.id===id):{id:null,product:(productsByPopularity()[0]&&productsByPopularity()[0].name)||'',quantity:1,status:'Pending',platform:'',orderDate:new Date().toISOString().slice(0,10),itemSellPrice:0,pointOfContact:'',notes:''};
+  const curProd=productByName(o.product);
+  if(!o.platform)o.platform=defaultChannelFor(curProd);
+  const statuses=['Pending','In Progress','Shipped','Delivered','Returned','Cancelled'];
+  openModal(`<h3>${id?'Edit':'New'} order</h3>
+    <div class="grid2">
+      <label class="fld">Product<select id="f_product">${productsByPopularity().map(p=>`<option ${o.product===p.name?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></label>
+      <label class="fld">Platform<select id="f_platform">${platformOptions(curProd,o.platform)}</select></label>
+      <label class="fld">Quantity<input type="number" id="f_quantity" value="${o.quantity}" min="1"></label>
+      <label class="fld">Order date<input type="date" id="f_orderDate" value="${o.orderDate||''}"></label>
+      <label class="fld">Status<select id="f_status">${statuses.map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></label>
+      <label class="fld">Item sell price (${cur()})<input type="number" step="0.01" id="f_price" value="${o.itemSellPrice}"></label>
+      <label class="fld">Point of contact<input id="f_contact" value="${escapeHtml(o.pointOfContact||'')}"></label>
+      <div class="fld" style="justify-content:flex-end"><div class="note" id="f_suggest"></div></div>
+      <label class="fld" style="grid-column:1/3">Notes<textarea id="f_notes" rows="2">${escapeHtml(o.notes||'')}</textarea></label>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="f_save">${id?'Save':'Add order'}</button>
+    </div>`);
+  function suggest(){
+    const p=productByName(val('f_product'));const plat=val('f_platform');
+    if(p){const c=computePrice(p,plat);document.getElementById('f_suggest').innerHTML=`Suggested price for <b>${escapeHtml(plat)}</b>: <b>${money(c.final)}</b> <button class="btn sm ghost" id="useSug">Use</button>`;
+      const u=document.getElementById('useSug');if(u)u.onclick=()=>{document.getElementById('f_price').value=Math.round(c.final*100)/100;};}
+  }
+  document.getElementById('f_product').onchange=()=>{const p=productByName(val('f_product'));const sel=document.getElementById('f_platform');sel.innerHTML=platformOptions(p,defaultChannelFor(p));suggest();};
+  document.getElementById('f_platform').onchange=suggest;suggest();
+  document.getElementById('f_save').onclick=()=>{
+    const obj={product:val('f_product'),platform:val('f_platform'),quantity:+val('f_quantity')||1,orderDate:val('f_orderDate'),status:val('f_status'),itemSellPrice:+val('f_price')||0,pointOfContact:val('f_contact'),notes:val('f_notes')};
+    if(id){Object.assign(state.orders.find(x=>x.id===id),obj);}else{obj.id=uid();state.orders.push(obj);const _pr=productByName(obj.product);if(_pr&&_pr.materials&&_pr.materials.length){_pr.materials.forEach(m=>{const _it=invById(m.invId);if(_it)_it.qty=Math.max(0,(+_it.qty||0)-(+m.qty||0)*(+obj.quantity||0));});}}
+    closeModal();save();renderOrders();toast('Order saved');
+  };
+}
+
+/* ---- Products & Pricing ---- */
+let expandedProducts=new Set();
+function renderProducts(){document.getElementById('topActions').innerHTML='';
+  topBtn('+ New product',()=>productModal());
+  topBtn('+ New pack',()=>packModal());
+  content.innerHTML=`<div class="note" style="margin-bottom:14px">Final price = (material + additional + packaging + desired profit + Emag Genius tax) ÷ (1 − platform cut% − PFA tax%). Desired profit defaults to ${money(state.settings.profitPerHour)}/hour × build time. PFA tax is <b>${state.settings.pfaTaxRate}%</b> (editable in Settings).</div>
+  <div id="prodList"></div>`;
+  const list=document.getElementById('prodList');
+  if(!state.products.length){list.innerHTML='<div class="empty">No products yet</div>';return;}
+  list.innerHTML=state.products.slice().sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})).map(p=>{
+    const c=computePrice(p,primaryPlatform(p));
+    const open=expandedProducts.has(p.code);
+    return `<div class="panel prodcard" data-code="${escapeHtml(p.code)}">
+      <div class="prodhead" data-toggle="${escapeHtml(p.code)}" style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;cursor:pointer">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span class="chev" style="display:inline-block;transition:transform .15s;transform:rotate(${open?90:0}deg);color:var(--muted);margin-top:2px;font-size:11px">▶</span>
+          <div>
+            <div style="font-size:15px;font-weight:650">${escapeHtml(p.name)}${p.isPack?' <span class="pill" style="font-size:10px;padding:1px 7px;color:var(--accent2);border-color:var(--accent2)">Pack</span>':''}</div>
+            <div class="note">${escapeHtml(p.code)} · ${p.materialWeight}g · ${p.buildTime}h build · materials: ${escapeHtml(p.additionalMaterials||'-')}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--muted)">${escapeHtml(primaryPlatform(p))} price</div>
+          <div style="font-size:22px;font-weight:700;color:var(--accent2)">${money(c.final)}</div>
+        </div>
+      </div>
+      <div class="proddetail" style="display:${open?'block':'none'}">
+      <div class="breakdown" style="margin-top:12px">
+        <div class="ln"><span>Material + additional + packaging</span><span>${fmt(c.base)} ${cur()}</span></div>
+        <div class="ln"><span>Desired profit</span><span>${fmt(c.profit)} ${cur()}</span></div>
+        <div class="ln"><span>PFA tax (${fmt(c.pfa*100)}%)</span><span>${fmt(c.pfaAmt)} ${cur()}</span></div>
+        <div class="ln total"><span>Final product sale price</span><span>${money(c.base+c.profit+c.pfaAmt)}</span></div>
+      </div>
+      <div style="margin-top:12px"><b style="font-size:12px;color:var(--muted)">Price by channel</b>
+        <div class="tablewrap" style="margin-top:6px"><table><thead><tr><th>Channel</th><th class="num">Cut</th><th class="num">Genius / ship</th><th class="num">PFA tax</th><th class="num">Final price</th></tr></thead><tbody>
+        ${buildChannels(p).map(g=>`<tr><td>${escapeHtml(g.names.join(' / '))}</td><td class="num">${fmt(g.c.cut*100)}%</td><td class="num">${fmt(g.c.fee)}</td><td class="num">${fmt(g.c.pfaAmt)}</td><td class="num" style="font-weight:600">${money(g.c.final)}</td></tr>`).join('')}
+        </tbody></table></div>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn sm ghost" data-edit="${p.code}">Edit</button><button class="btn sm danger" data-del="${p.code}">Delete</button></div>
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{const pr=state.products.find(x=>x.code===b.dataset.edit);if(pr&&pr.isPack)packModal(pr.code);else productModal(b.dataset.edit);});
+  list.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>confirmDel('product',b.dataset.del));
+  list.querySelectorAll('[data-toggle]').forEach(h=>h.onclick=()=>{const code=h.dataset.toggle;if(expandedProducts.has(code))expandedProducts.delete(code);else expandedProducts.add(code);const card=h.closest('.prodcard');const det=card.querySelector('.proddetail');const chev=h.querySelector('.chev');const o=expandedProducts.has(code);det.style.display=o?'block':'none';if(chev)chev.style.transform='rotate('+(o?90:0)+'deg)';});
+}
+function productModal(code){
+  const p=code?state.products.find(x=>x.code===code):{code:'',name:'',materialWeight:0,additionalMaterials:'',buildTime:0,materialCost:0,materialPricePerKg:100,additionalCost:0,packagingCost:5,materials:[],tiers:{},defaultPlatform:'',desiredProfit:'',geniusOverride:''};
+  let pmats=(p.materials&&p.materials.length)?p.materials.map(m=>({invId:m.invId,qty:m.qty})):[];
+  openModal(`<h3>${code?'Edit':'New'} product</h3>
+    <div class="grid2">
+      <label class="fld">Product code<input id="p_code" value="${escapeHtml(p.code)}"></label>
+      <label class="fld">Name<input id="p_name" value="${escapeHtml(p.name)}"></label>
+      <label class="fld">Material weight (g)<input type="number" step="0.01" id="p_weight" value="${p.materialWeight}"></label>
+      <label class="fld">Build time (h)<input type="number" step="0.1" id="p_build" value="${p.buildTime}"></label>
+      <label class="fld" style="grid-column:1/3">Additional materials<input id="p_addmat" value="${escapeHtml(p.additionalMaterials||'')}"></label>
+      <label class="fld">Material cost (${cur()} / 1kg)<input type="number" step="0.01" id="p_matcost" value="${p.materialPricePerKg!=null?p.materialPricePerKg:100}"></label>
+      <label class="fld">Additional cost (${cur()})<input type="number" step="0.01" id="p_addcost" value="${p.additionalCost}" placeholder="e.g. paint"></label>
+      <div style="grid-column:1/3"><div style="font-size:12px;font-weight:500;margin-bottom:6px">Materials from inventory <span style="font-weight:400;color:var(--muted)">(used per item; price adds to Additional cost; stock drops on new orders)</span></div>
+        <div id="p_matrows" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button class="btn sm ghost" id="p_matadd" style="margin-top:8px">+ Add inventory material</button></div>
+      <label class="fld">Packaging cost (${cur()})<input type="number" step="0.01" id="p_pkg" value="${p.packagingCost}"></label>
+      <label class="fld">Desired profit (${cur()})<input type="number" step="0.01" id="p_profit" value="${p.desiredProfit}" placeholder="blank = auto"></label>
+      ${multiFamilies().map(fa=>`<label class="fld">${escapeHtml(fa[0])} tier<select class="p_tier" data-fam="${escapeHtml(fa[0])}">${fa[1].map(pl=>`<option ${resolvedChannelName(p,fa[0],fa[1])===pl.name?'selected':''}>${escapeHtml(pl.name)}</option>`).join('')}</select></label>`).join('')}
+      <div class="note" style="grid-column:1/3">Channels come from the Platforms tab, grouped by name — pick a tier above for each multi-tier family (e.g. Emag, Trendyol). Single-name channels (Local, OLX, …) appear automatically, and channels with identical taxes are merged into one row.</div>
+      <label class="fld">Emag Genius tax (${cur()})<input type="number" step="0.01" id="p_genius" value="${p.geniusOverride}" placeholder="blank = auto"></label>
+    </div>
+    <div class="breakdown" id="p_preview"></div>
+    <div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="p_save">${code?'Save':'Add product'}</button></div>`);
+  function preview(){
+    const tmp={materialWeight:+val('p_weight')||0,materialPricePerKg:+val('p_matcost')||0,additionalCost:+val('p_addcost')||0,materials:pmats.filter(m=>m.invId),packagingCost:+val('p_pkg')||0,buildTime:+val('p_build')||0,desiredProfit:val('p_profit'),geniusOverride:val('p_genius')};
+    const c=computePrice(tmp,primaryTierVal());
+    document.getElementById('p_preview').innerHTML=`
+      <div class="ln"><span>Base cost</span><span>${fmt(c.base)} ${cur()}</span></div>
+      <div class="ln"><span>Desired profit</span><span>${fmt(c.profit)} ${cur()}</span></div>
+      <div class="ln"><span>Genius tax</span><span>${fmt(c.genius)} ${cur()}</span></div>
+      <div class="ln"><span>Platform cut + PFA tax</span><span>${fmt(c.cutAmt+c.pfaAmt)} ${cur()}</span></div>
+      <div class="ln total"><span>Final price (${escapeHtml(primaryTierVal())})</span><span>${money(c.final)}</span></div>`;
+  }
+  ['p_weight','p_matcost','p_addcost','p_pkg','p_build','p_profit','p_genius'].forEach(idd=>{const el=document.getElementById(idd);if(el){el.oninput=preview;el.onchange=preview;}});
+  function pInvOpts(sel){return '<option value="">- inventory item -</option>'+state.inventory.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(it=>`<option value="${escapeHtml(it.id)}" ${sel===it.id?'selected':''}>${escapeHtml(it.name)} (${fmt(it.price||0)} ${cur()})</option>`).join('');}
+  function drawMatRows(){const el=document.getElementById('p_matrows');if(!el)return;el.innerHTML=pmats.length?pmats.map((m,i)=>`<div class="row" style="gap:8px;align-items:center;flex-wrap:nowrap"><select data-mc="${i}" style="flex:1;min-width:0">${pInvOpts(m.invId)}</select><input type="number" min="1" step="1" data-mq="${i}" value="${m.qty}" style="width:66px" title="Qty used per item"><button class="iconbtn" data-mr="${i}" title="Remove">x</button></div>`).join(''):'<div class="note">No inventory items used.</div>';el.querySelectorAll('[data-mc]').forEach(x=>x.onchange=()=>{pmats[+x.dataset.mc].invId=x.value;preview();});el.querySelectorAll('[data-mq]').forEach(x=>x.oninput=()=>{pmats[+x.dataset.mq].qty=+x.value||0;preview();});el.querySelectorAll('[data-mr]').forEach(x=>x.onclick=()=>{pmats.splice(+x.dataset.mr,1);drawMatRows();preview();});}
+  const _ma=document.getElementById('p_matadd');if(_ma)_ma.onclick=()=>{pmats.push({invId:'',qty:1});drawMatRows();preview();};
+  drawMatRows();
+  document.querySelectorAll('.p_tier').forEach(sel=>sel.onchange=preview);
+  preview();
+  document.getElementById('p_save').onclick=()=>{
+    const c=val('p_code').trim();if(!c){toast('Code required');return;}
+    const tiers={};document.querySelectorAll('.p_tier').forEach(sel=>{tiers[sel.dataset.fam]=sel.value;});
+    let dft=tiers['Emag'];if(!dft){for(const k in tiers){dft=tiers[k];break;}}if(!dft)dft=(state.platforms[0]?state.platforms[0].name:'');
+    const obj={code:c,name:val('p_name'),materialWeight:+val('p_weight')||0,additionalMaterials:val('p_addmat'),buildTime:+val('p_build')||0,materialPricePerKg:+val('p_matcost')||0,materialCost:(+val('p_weight')||0)/1000*(+val('p_matcost')||0),additionalCost:+val('p_addcost')||0,materials:pmats.filter(m=>m.invId&&+m.qty>0),packagingCost:+val('p_pkg')||0,tiers:tiers,defaultPlatform:dft,desiredProfit:val('p_profit')===''?'':+val('p_profit'),geniusOverride:val('p_genius')===''?'':+val('p_genius')};
+    if(code){if(c!==code&&state.products.some(x=>x.code===c)){toast('Code already exists');return;}Object.assign(state.products.find(x=>x.code===code),obj);if(c!==code)state.products.forEach(pp=>{(pp.components||[]).forEach(cm=>{if(cm.code===code)cm.code=c;});});}else{if(state.products.some(x=>x.code===c)){toast('Code exists');return;}state.products.push(obj);}
+    closeModal();save();renderProducts();toast('Product saved');
+  };
+}
+
+/* ---- Inventory ---- */
+function computePack(components){
+  let weight=0,build=0,perKg=0,add=0,pkg=0,emag=null,trend=null;
+  const mats={};
+  const tn=n=>{const m=(n||'').match(/(\d+)/);return m?+m[1]:-1;};
+  components.forEach(c=>{const p=state.products.find(x=>x.code===c.code);if(!p)return;const q=+c.qty||0;
+    weight+=(+p.materialWeight||0)*q;build+=(+p.buildTime||0)*q;const _rate=(p.materialPricePerKg!=null&&p.materialPricePerKg!=='')?+p.materialPricePerKg:((+p.materialWeight>0)?(+p.materialCost||0)/((+p.materialWeight)/1000):100);perKg=Math.max(perKg,_rate);
+    add+=(+p.additionalCost||0)*q;pkg=Math.max(pkg,+p.packagingCost||0);(p.materials||[]).forEach(m=>{if(!m.invId)return;mats[m.invId]=(mats[m.invId]||0)+(+m.qty||0)*q;});
+    const e=p.tiers&&p.tiers['Emag'];if(e&&(!emag||tn(e)>tn(emag)))emag=e;
+    const t=p.tiers&&p.tiers['Trendyol'];if(t&&(!trend||tn(t)>tn(trend)))trend=t;});
+  const r2=x=>Math.round(x*100)/100;const tiers={};if(emag)tiers['Emag']=emag;if(trend)tiers['Trendyol']=trend;
+  return {materialWeight:r2(weight),buildTime:r2(build),materialPricePerKg:r2(perKg),additionalCost:r2(add),packagingCost:r2(pkg),tiers,defaultPlatform:emag||trend||'',materials:Object.keys(mats).map(k=>({invId:k,qty:mats[k]}))};
+}
+function packModal(code){
+  const existing=code?state.products.find(x=>x.code===code):null;
+  let comps=(existing&&existing.components&&existing.components.length)?existing.components.map(c=>({code:c.code,qty:c.qty})):[{code:'',qty:1}];
+  let pkgTouched=!!existing;
+  openModal(`<h3>${code?'Edit':'New'} pack</h3>
+    <div class="grid2">
+      <label class="fld">Pack code<input id="pk_code" value="${escapeHtml(existing?existing.code:'')}"></label>
+      <label class="fld">Name<input id="pk_name" value="${escapeHtml(existing?existing.name:'')}"></label>
+    </div>
+    <div style="margin-top:14px"><b style="font-size:12px;color:var(--muted)">Products in this pack</b>
+      <div id="pk_rows" style="margin-top:8px;display:flex;flex-direction:column;gap:8px"></div>
+      <button class="btn sm ghost" id="pk_add" style="margin-top:10px">+ Add product</button></div>
+    <label class="fld" style="margin-top:14px">Additional materials <span style="font-weight:400">e.g. 3x tea light</span><input id="pk_addmat" value="${existing&&existing.additionalMaterials?escapeHtml(existing.additionalMaterials):''}"></label>
+    <label class="fld" style="margin-top:14px">Packaging cost (${cur()}) <span style="font-weight:400">one box — auto = largest component box; raise it for a bigger box</span><input type="number" step="0.01" id="pk_pkg" value="${existing&&existing.packagingCost!=null?existing.packagingCost:''}"></label>
+    <label class="fld" style="margin-top:14px">Desired profit (${cur()}) <span style="font-weight:400">blank = auto (${money(state.settings.profitPerHour)}/h x build)</span><input type="number" step="0.01" id="pk_profit" value="${existing&&existing.desiredProfit!=null&&existing.desiredProfit!==''?existing.desiredProfit:''}"></label>
+    <div class="breakdown" id="pk_preview"></div>
+    <div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="pk_save">${code?'Save pack':'Create pack'}</button></div>`);
+  const rowsEl=document.getElementById('pk_rows');
+  const O=state.products.filter(p=>!p.isPack).slice().sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+  function drawRows(){
+    rowsEl.innerHTML=comps.map((c,i)=>`<div class="row" style="gap:8px;align-items:center;flex-wrap:nowrap">
+      <select data-pc="${i}" style="flex:1;min-width:0"><option value="">- select product -</option>${O.map(p=>`<option value="${escapeHtml(p.code)}" ${c.code===p.code?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select>
+      <input type="number" min="1" step="1" data-pq="${i}" value="${c.qty}" style="width:66px" title="Quantity">
+      <button class="iconbtn" data-pr="${i}" title="Remove">x</button></div>`).join('');
+    rowsEl.querySelectorAll('[data-pc]').forEach(el=>el.onchange=()=>{comps[+el.dataset.pc].code=el.value;preview();});
+    rowsEl.querySelectorAll('[data-pq]').forEach(el=>el.oninput=()=>{comps[+el.dataset.pq].qty=+el.value||0;preview();});
+    rowsEl.querySelectorAll('[data-pr]').forEach(el=>el.onclick=()=>{comps.splice(+el.dataset.pr,1);if(!comps.length)comps.push({code:'',qty:1});drawRows();preview();});
+  }
+  function valid(){return comps.filter(c=>c.code&&(+c.qty>0));}
+  function preview(){
+    const pk=computePack(valid());if(!pkgTouched){const _pf=document.getElementById('pk_pkg');if(_pf)_pf.value=pk.packagingCost;}const pkg=+val('pk_pkg')||0;const tmp={materialWeight:pk.materialWeight,materialPricePerKg:pk.materialPricePerKg,additionalCost:pk.additionalCost,materials:pk.materials,packagingCost:pkg,buildTime:pk.buildTime,tiers:pk.tiers,desiredProfit:val('pk_profit'),geniusOverride:''};
+    const plat=pk.defaultPlatform||'';const c=plat?computePrice(tmp,plat):null;
+    document.getElementById('pk_preview').innerHTML=
+      `<div class="ln"><span>Material weight</span><span>${fmt(pk.materialWeight)} g</span></div>`+
+      `<div class="ln"><span>Build time</span><span>${fmt(pk.buildTime)} h</span></div>`+
+      `<div class="ln"><span>Material cost (${fmt(pk.materialPricePerKg)} ${cur()}/kg)</span><span>${fmt(pk.materialWeight/1000*pk.materialPricePerKg)} ${cur()}</span></div>`+
+      `<div class="ln"><span>Additional cost</span><span>${fmt(pk.additionalCost)} ${cur()}</span></div>`+
+      `<div class="ln"><span>Packaging (one box)</span><span>${fmt(pkg)} ${cur()}</span></div>`+
+      `<div class="ln"><span>Channels</span><span>${escapeHtml(pk.tiers['Emag']||'-')} / ${escapeHtml(pk.tiers['Trendyol']||'-')}</span></div>`+
+      (c?`<div class="ln total"><span>Price on ${escapeHtml(plat)}</span><span>${money(c.final)}</span></div>`:`<div class="note" style="margin-top:6px">Add products to see the price.</div>`);
+  }
+  document.getElementById('pk_add').onclick=()=>{comps.push({code:'',qty:1});drawRows();preview();};
+  document.getElementById('pk_profit').oninput=preview;
+  document.getElementById('pk_pkg').oninput=()=>{pkgTouched=true;preview();};
+  drawRows();preview();
+  document.getElementById('pk_save').onclick=()=>{
+    const cc=val('pk_code').trim();if(!cc){toast('Pack code required');return;}
+    const nm=val('pk_name').trim();if(!nm){toast('Name required');return;}
+    const v=valid();if(!v.length){toast('Add at least one product');return;}
+    const pk=computePack(v);
+    const names=v.map(c=>{const p=state.products.find(x=>x.code===c.code);return c.qty+'x '+(p?p.name:c.code);}).join(', ');
+    const obj={code:cc,name:nm,materialWeight:pk.materialWeight,materialPricePerKg:pk.materialPricePerKg,materialCost:Math.round(pk.materialWeight/1000*pk.materialPricePerKg*100)/100,additionalCost:pk.additionalCost,materials:pk.materials,packagingCost:+val('pk_pkg')||0,buildTime:pk.buildTime,additionalMaterials:val('pk_addmat'),tiers:pk.tiers,defaultPlatform:pk.defaultPlatform,desiredProfit:val('pk_profit')===''?'':+val('pk_profit'),geniusOverride:'',isPack:true,components:v};
+    if(code){if(cc!==code&&state.products.some(x=>x.code===cc)){toast('Code already exists');return;}Object.assign(state.products.find(x=>x.code===code),obj);}else{if(state.products.some(x=>x.code===cc)){toast('Code exists');return;}state.products.push(obj);}
+    closeModal();save();renderProducts();toast('Pack saved');
+  };
+}
+function renderInventory(){document.getElementById('topActions').innerHTML='';
+  topBtn('+ New item',()=>inventoryModal());
+  const t=state.settings.lowStockThreshold;
+  content.innerHTML=`<div class="panel" style="padding:0"><div class="tablewrap"><table><thead><tr><th>Item</th><th class="num">In stock</th><th class="num">Unit price</th><th>Status</th><th></th></tr></thead><tbody>
+  ${state.inventory.length?state.inventory.map((it,i)=>{
+    const cls=it.qty<=0?'stock-out':(it.qty<=t?'stock-low':'stock-ok');const lbl=it.qty<=0?'Out of stock':(it.qty<=t?'Reorder':'OK');
+    return `<tr><td>${escapeHtml(it.name)}</td><td class="num ${cls}">${it.qty}</td><td class="num">${fmt(it.price||0)}</td><td class="${cls}">${lbl}</td>
+    <td style="text-align:right">
+      <button class="iconbtn" data-dec="${i}">−</button> <button class="iconbtn" data-inc="${i}">+</button>
+      <button class="iconbtn" data-edit="${i}">✎</button> <button class="iconbtn" data-del="${i}">🗑</button></td></tr>`;
+  }).join(''):'<tr><td colspan="4" class="empty">No items</td></tr>'}
+  </tbody></table></div></div>`;
+  content.querySelectorAll('[data-inc]').forEach(b=>b.onclick=()=>{state.inventory[b.dataset.inc].qty++;save();renderInventory();});
+  content.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>{const it=state.inventory[b.dataset.dec];it.qty=Math.max(0,it.qty-1);save();renderInventory();});
+  content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>inventoryModal(+b.dataset.edit));
+  content.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const i=+b.dataset.del;openConfirm('Delete "'+state.inventory[i].name+'"?',()=>{state.inventory.splice(i,1);save();renderInventory();});});
+}
+function inventoryModal(i){
+  const it=(i!=null)?state.inventory[i]:{name:'',qty:0,price:0};
+  openModal(`<h3>${i!=null?'Edit':'New'} item</h3>
+    <div class="grid2"><label class="fld">Name<input id="i_name" value="${escapeHtml(it.name)}"></label><label class="fld">In stock<input type="number" id="i_qty" value="${it.qty}"></label><label class="fld">Unit price (${cur()})<input type="number" step="0.01" id="i_price" value="${it.price!=null?it.price:0}"></label></div>
+    <div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="i_save">Save</button></div>`);
+  document.getElementById('i_save').onclick=()=>{const obj={name:val('i_name'),qty:+val('i_qty')||0,price:+val('i_price')||0};if(i!=null)Object.assign(state.inventory[i],obj);else state.inventory.push(obj);closeModal();save();renderInventory();toast('Saved');};
+}
+
+/* ---- Expenses ---- */
+function renderExpenses(){document.getElementById('topActions').innerHTML='';
+  topBtn('+ New expense',()=>expenseModal());
+  const rows=expensesForYear().sort((a,b)=>(a.date<b.date?1:-1));
+  const total=rows.reduce((s,e)=>s+(+e.cost||0),0);
+  const byCat={};rows.forEach(e=>byCat[e.category]=(byCat[e.category]||0)+(+e.cost||0));
+  content.innerHTML=`
+  <div class="cards">${Object.entries(byCat).map(([c,v])=>`<div class="kpi"><div class="label">${escapeHtml(c||'Uncategorized')}</div><div class="val" style="font-size:20px">${money(v)}</div></div>`).join('')||''}
+    <div class="kpi"><div class="label">Total expenses</div><div class="val" style="font-size:20px">${money(total)}</div></div></div>
+  <div class="panel" style="padding:0"><div class="tablewrap"><table><thead><tr><th>Date</th><th>Item</th><th>Category</th><th class="num">Cost</th><th>Notes</th><th></th></tr></thead><tbody>
+  ${rows.length?rows.map(e=>`<tr><td>${e.date||''}</td><td>${escapeHtml(e.item)}</td><td>${escapeHtml(e.category||'')}</td><td class="num">${money(e.cost)}</td><td style="white-space:normal;max-width:280px;color:var(--muted)">${escapeHtml(e.notes||'')}</td>
+    <td style="text-align:right"><button class="iconbtn" data-edit="${e._i=state.expenses.indexOf(e)}">✎</button> <button class="iconbtn" data-del="${state.expenses.indexOf(e)}">🗑</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">No expenses</td></tr>'}
+  </tbody></table></div></div>`;
+  content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>expenseModal(+b.dataset.edit));
+  content.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const i=+b.dataset.del;openConfirm('Delete this expense?',()=>{state.expenses.splice(i,1);save();renderExpenses();});});
+}
+function expenseModal(i){
+  const e=(i!=null)?state.expenses[i]:{date:new Date().toISOString().slice(0,10),item:'',category:'',cost:0,notes:''};
+  openModal(`<h3>${i!=null?'Edit':'New'} expense</h3>
+    <div class="grid2">
+      <label class="fld">Date<input type="date" id="e_date" value="${e.date||''}"></label>
+      <label class="fld">Category<input id="e_cat" value="${escapeHtml(e.category||'')}" list="catlist"><datalist id="catlist">${[...new Set([...state.expenses.map(x=>x.category).filter(Boolean),'Materials','Printer','Packaging','Accessories','Shipping','Services','Tools','Other'])].sort((a,b)=>String(a).localeCompare(String(b))).map(c=>`<option>${escapeHtml(c)}</option>`).join('')}</datalist></label>
+      <label class="fld">Item<input id="e_item" value="${escapeHtml(e.item)}"></label>
+      <label class="fld">Cost (${cur()})<input type="number" step="0.01" id="e_cost" value="${e.cost}"></label>
+      <label class="fld" style="grid-column:1/3">Notes<textarea id="e_notes" rows="2">${escapeHtml(e.notes||'')}</textarea></label>
+    </div>
+    <div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="e_save">Save</button></div>`);
+  document.getElementById('e_save').onclick=()=>{const obj={date:val('e_date'),item:val('e_item'),category:val('e_cat'),cost:+val('e_cost')||0,notes:val('e_notes')};if(i!=null)Object.assign(state.expenses[i],obj);else state.expenses.push(obj);closeModal();save();renderExpenses();toast('Saved');};
+}
+
+/* ---- Platforms ---- */
+function renderPlatforms(){document.getElementById('topActions').innerHTML='';
+  topBtn('+ New platform',()=>platformModal());
+  content.innerHTML=`<div class="panel" style="padding:0"><div class="tablewrap"><table><thead><tr><th>Platform</th><th class="num">Cut %</th><th>PFA</th><th class="num">Additional fees</th><th>Notes</th><th></th></tr></thead><tbody>
+  ${state.platforms.map((p,i)=>({p,i})).sort((a,b)=>a.p.name.localeCompare(b.p.name,undefined,{numeric:true,sensitivity:'base'})).map(({p,i})=>`<tr><td>${escapeHtml(p.name)}</td><td class="num">${p.cut}%</td><td>${p.pfa?'Yes':'No'}</td><td class="num">${fmt(p.fees)}</td><td style="white-space:normal;color:var(--muted)">${escapeHtml(p.notes||'')}</td>
+    <td style="text-align:right"><button class="iconbtn" data-edit="${i}">✎</button> <button class="iconbtn" data-del="${i}">🗑</button></td></tr>`).join('')}
+  </tbody></table></div></div>`;
+  content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>platformModal(+b.dataset.edit));
+  content.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const i=+b.dataset.del;openConfirm('Delete platform "'+state.platforms[i].name+'"?',()=>{state.platforms.splice(i,1);save();renderPlatforms();});});
+}
+function platformModal(i){
+  const p=(i!=null)?state.platforms[i]:{name:'',cut:0,fees:0,pfa:true,notes:''};
+  openModal(`<h3>${i!=null?'Edit':'New'} platform</h3>
+    <div class="grid2"><label class="fld">Name<input id="pl_name" value="${escapeHtml(p.name)}"></label><label class="fld">Cut %<input type="number" step="0.01" id="pl_cut" value="${p.cut}"></label>
+    <label class="fld">Additional fees (${cur()})<input type="number" step="0.01" id="pl_fees" value="${p.fees}"></label><label class="fld">PFA tax applies?<select id="pl_pfa"><option value="yes" ${p.pfa?'selected':''}>Yes (statement)</option><option value="no" ${!p.pfa?'selected':''}>No</option></select></label><label class="fld" style="grid-column:1/3">Notes<input id="pl_notes" value="${escapeHtml(p.notes||'')}"></label></div>
+    <div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="pl_save">Save</button></div>`);
+  document.getElementById('pl_save').onclick=()=>{const obj={name:val('pl_name'),cut:+val('pl_cut')||0,fees:+val('pl_fees')||0,pfa:val('pl_pfa')==='yes',notes:val('pl_notes')};if(i!=null)Object.assign(state.platforms[i],obj);else state.platforms.push(obj);closeModal();save();renderPlatforms();toast('Saved');};
+}
+
+/* ---- Settings ---- */
+function renderSettings(){
+  const s=state.settings;const statuses=['Pending','In Progress','Shipped','Delivered','Returned','Cancelled'];
+  content.innerHTML=`
+  <div class="panel">
+    <h2>Business rates</h2>
+    <div class="grid2">
+      <label class="fld">Currency<input id="s_cur" value="${escapeHtml(s.currency)}"></label>
+      <label class="fld">Desired profit per hour<input type="number" step="0.01" id="s_pph" value="${s.profitPerHour}"></label>
+      <label class="fld">PFA tax rate (%)<input type="number" step="0.01" id="s_pfa" value="${s.pfaTaxRate}"></label>
+      <label class="fld">Low-stock reorder threshold<input type="number" id="s_low" value="${s.lowStockThreshold}"></label>
+    </div>
+    <div style="margin-top:14px"><div class="note" style="margin-bottom:6px">Order statuses counted as income on the dashboard:</div>
+      <div class="row">${statuses.map(st=>`<label class="pill"><input type="checkbox" class="s_inc" value="${st}" ${s.incomeCountsStatuses.includes(st)?'checked':''}> ${st}</label>`).join('')}</div>
+    </div>
+    <div style="display:flex;justify-content:flex-start;margin-top:18px"><button class="btn" id="s_save">Save settings</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>Emag Genius tax bands <span class="hint">commission × (1 + TVA) = total tax</span></h2>
+    <div class="tablewrap"><table><thead><tr><th class="num">Min value</th><th class="num">Max value</th><th class="num">Commission</th><th class="num">TVA %</th><th class="num">Total tax</th><th></th></tr></thead><tbody>
+    ${state.geniusBands.map((b,i)=>`<tr><td class="num">${b.min}</td><td class="num">${b.max}</td><td class="num">${b.commission}</td><td class="num">${b.tva}</td><td class="num">${fmt(b.totalTax)}</td>
+      <td style="text-align:right"><button class="iconbtn" data-gedit="${i}">✎</button> <button class="iconbtn" data-gdel="${i}">🗑</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="row" style="margin-top:12px"><button class="btn sm ghost" id="g_add">+ Add band</button></div>
+    <div class="note" style="margin-top:10px">Note: your sheet has two overlapping 40–49.99 bands (tax 4.84 and 2.42). The calculator uses the first matching band. You can remove the duplicate here.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Trendyol shipping bands <span class="hint">added into Trendyol prices by sale-price band</span></h2>
+    <div class="tablewrap"><table><thead><tr><th class="num">Min value</th><th class="num">Max value</th><th class="num">Shipping fee</th><th class="num">TVA %</th><th class="num">Total fee</th><th></th></tr></thead><tbody>
+    ${(state.shippingBands||[]).map((b,i)=>`<tr><td class="num">${b.min}</td><td class="num">${b.max}</td><td class="num">${fmt(b.fee)}</td><td class="num">${b.tva||0}</td><td class="num">${fmt(b.totalFee!=null?b.totalFee:b.fee)}</td>
+      <td style="text-align:right"><button class="iconbtn" data-sedit="${i}">✎</button> <button class="iconbtn" data-sdel="${i}">🗑</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="row" style="margin-top:12px"><button class="btn sm ghost" id="sh_add">+ Add band</button></div>
+    <div class="note" style="margin-top:10px">Trendyol shipping (Taxă de expediere) is paid by you and folded into the sale price. Set TVA % only if you are VAT-registered (leave 0 otherwise).</div>
+  </div>
+
+  <div class="panel">
+    <h2>About the PFA tax</h2>
+    <div class="note">
+    In Romania, a <b>PFA</b> (Persoană Fizică Autorizată) in the real system is generally subject to three components on net business income:<br><br>
+    • <b>Income tax</b> — 10% of net income (income minus deductible expenses). This applies regardless of income level.<br>
+    • <b>CASS (health)</b> — 10%, but only triggered once annual net income passes thresholds tied to the gross minimum wage (the floor base has historically been 6 minimum wages). A low-volume side business often falls below the mandatory threshold, or pays only the minimum base — especially if you also have a salaried job that already covers health insurance.<br>
+    • <b>CAS (pension)</b> — 25%, only owed once net income exceeds 12 minimum wages per year; below that it is not due.<br><br>
+    For a small side business, the only component that always applies is the <b>10% income tax on profit</b>, which is why this app defaults the PFA tax rate to <b>10%</b>. Your spreadsheet's historical prices imply a slightly higher effective rate (~14% baked into the gross-up), so set the rate to ~14% in the field above if you want new suggested prices to match your existing listings exactly. These figures change with the annual minimum wage and tax law — confirm current thresholds with ANAF or your accountant. This is general information, not tax advice.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Data</h2>
+    <div class="note" style="margin-bottom:12px">Status: <b>${usingFile?('saving to file "'+((fileHandle&&fileHandle.name)||'data.json')+'"'):'browser storage (this browser only)'}</b>. ${FSA?'':'Your browser does not support direct file saving — use Export/Import for backups.'}</div>
+    <div class="row">
+      <button class="btn ghost" id="d_connect">${usingFile?'Switch file…':(pendingHandle?'Reconnect data file':'Connect data file')}</button>
+      <button class="btn ghost" id="d_export">Export backup (.json)</button>
+      <button class="btn ghost" id="d_import">Import backup</button>
+      <button class="btn danger" id="d_reset">Reset to empty</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Automatic backups <span class="hint">daily · last 7 kept</span></h2>
+    <div class="note" style="margin-bottom:10px">A snapshot is saved automatically once per day and stored in this browser. The 7 most recent are kept, so you can roll back about a week. Use Download to also keep a copy on disk.</div>
+    <div class="row" style="margin-bottom:12px"><button class="btn" id="b_now">Back up now</button></div>
+    <div id="backupList" class="note">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <h2>Version <span class="hint">v${APP_VERSION}</span></h2>
+    <div class="note">${CHANGELOG.map(c=>`<div style="margin-bottom:6px"><b>v${c.v}</b> — ${escapeHtml(c.notes)}</div>`).join('')}</div>
+  </div>`;
+  document.getElementById('s_save').onclick=()=>{
+    s.currency=val('s_cur')||'RON';s.profitPerHour=+val('s_pph')||0;s.pfaTaxRate=+val('s_pfa')||0;s.lowStockThreshold=+val('s_low')||0;
+    s.incomeCountsStatuses=[...document.querySelectorAll('.s_inc:checked')].map(c=>c.value);
+    save();toast('Settings saved');render();
+  };
+  document.getElementById('g_add').onclick=()=>geniusModal();
+  content.querySelectorAll('[data-gedit]').forEach(b=>b.onclick=()=>geniusModal(+b.dataset.gedit));
+  content.querySelectorAll('[data-gdel]').forEach(b=>b.onclick=()=>{const i=+b.dataset.gdel;openConfirm('Delete this band?',()=>{state.geniusBands.splice(i,1);save();renderSettings();});});
+  const _sha=document.getElementById('sh_add');if(_sha)_sha.onclick=()=>shippingModal();
+  content.querySelectorAll('[data-sedit]').forEach(b=>b.onclick=()=>shippingModal(+b.dataset.sedit));
+  content.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=()=>{const i=+b.dataset.sdel;openConfirm('Delete this shipping band?',()=>{state.shippingBands.splice(i,1);save();renderSettings();});});
+  document.getElementById('d_connect').onclick=handleConnectButton;
+  document.getElementById('d_export').onclick=exportData;
+  document.getElementById('d_import').onclick=()=>document.getElementById('fileInput').click();
+  document.getElementById('d_reset').onclick=()=>openConfirm('Erase ALL data and start from an empty app (no products, platforms, inventory, orders or expenses)? This cannot be undone — export a backup first.',()=>{state=migrate(deepClone(SEED));save();toast('Reset to empty');render();});
+  document.getElementById('b_now').onclick=async()=>{const ok=await makeBackup();toast(ok?'Backup saved':'Backup not available here');loadBackupList();};
+  loadBackupList();
+}
+function geniusModal(i){
+  const b=(i!=null)?state.geniusBands[i]:{min:0,max:0,commission:0,tva:21,totalTax:0};
+  openModal(`<h3>${i!=null?'Edit':'New'} Genius band</h3>
+    <div class="grid2">
+      <label class="fld">Min value<input type="number" step="0.01" id="g_min" value="${b.min}"></label>
+      <label class="fld">Max value<input type="number" step="0.01" id="g_max" value="${b.max}"></label>
+      <label class="fld">Commission (${cur()})<input type="number" step="0.01" id="g_comm" value="${b.commission}"></label>
+      <label class="fld">TVA %<input type="number" step="0.01" id="g_tva" value="${b.tva}"></label>
+    </div>
+    <div class="note" id="g_calc" style="margin-top:8px"></div>
+    <div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="g_save">Save</button></div>`);
+  function calc(){const t=(+val('g_comm')||0)*(1+(+val('g_tva')||0)/100);document.getElementById('g_calc').textContent='Total tax = '+fmt(t)+' '+cur();return t;}
+  ['g_comm','g_tva'].forEach(idd=>document.getElementById(idd).oninput=calc);calc();
+  document.getElementById('g_save').onclick=()=>{const obj={min:+val('g_min')||0,max:+val('g_max')||0,commission:+val('g_comm')||0,tva:+val('g_tva')||0,totalTax:calc()};if(i!=null)Object.assign(state.geniusBands[i],obj);else state.geniusBands.push(obj);state.geniusBands.sort((a,b)=>a.min-b.min||a.totalTax-b.totalTax);closeModal();save();renderSettings();toast('Saved');};
+}
+function shippingModal(i){
+  const b=(i!=null)?state.shippingBands[i]:{min:0,max:0,fee:0,tva:0,totalFee:0};
+  openModal(`<h3>${i!=null?'Edit':'New'} shipping band</h3>
+    <div class="grid2">
+      <label class="fld">Min value<input type="number" step="0.01" id="sh_min" value="${b.min}"></label>
+      <label class="fld">Max value<input type="number" step="0.01" id="sh_max" value="${b.max}"></label>
+      <label class="fld">Shipping fee (${cur()})<input type="number" step="0.01" id="sh_fee" value="${b.fee}"></label>
+      <label class="fld">TVA %<input type="number" step="0.01" id="sh_tva" value="${b.tva||0}"></label>
+    </div>
+    <div class="note" id="sh_calc" style="margin-top:8px"></div>
+    <div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="sh_save">Save</button></div>`);
+  function calc(){const t=(+val('sh_fee')||0)*(1+(+val('sh_tva')||0)/100);document.getElementById('sh_calc').textContent='Total fee = '+fmt(t)+' '+cur();return t;}
+  ['sh_fee','sh_tva'].forEach(idd=>document.getElementById(idd).oninput=calc);calc();
+  document.getElementById('sh_save').onclick=()=>{const obj={min:+val('sh_min')||0,max:+val('sh_max')||0,fee:+val('sh_fee')||0,tva:+val('sh_tva')||0,totalFee:calc()};if(i!=null)Object.assign(state.shippingBands[i],obj);else{state.shippingBands=state.shippingBands||[];state.shippingBands.push(obj);}state.shippingBands.sort((a,b)=>a.min-b.min);closeModal();save();renderSettings();toast('Saved');};
+}
+
+/* ============ Backup import/export ============ */
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='atelier-data-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  toast('Backup downloaded');
+}
+document.getElementById('fileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state=migrate(JSON.parse(r.result));save();render();toast('Backup imported');}catch(err){toast('Invalid file');}};r.readAsText(f);e.target.value='';};
+
+/* ============ Modal / confirm / toast ============ */
+const modalBg=document.getElementById('modalBg'),modal=document.getElementById('modal');
+function openModal(html){modal.innerHTML=html;modalBg.classList.add('open');}
+function closeModal(){modalBg.classList.remove('open');if(modalBg._cancel){const c=modalBg._cancel;modalBg._cancel=null;c();}}
+modalBg.onclick=e=>{/* click-outside intentionally does NOT close; use Save/Cancel */};
+function openConfirm(msg,fn){openModal(`<h3>Confirm</h3><p class="note">${escapeHtml(msg)}</p><div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn danger" id="cf_ok">Confirm</button></div>`);document.getElementById('cf_ok').onclick=()=>{closeModal();fn();};}
+function confirmDel(type,id){
+  if(type==='order'){const o=state.orders.find(x=>x.id===id);openConfirm('Delete order "'+o.product+'"?',()=>{state.orders=state.orders.filter(x=>x.id!==id);save();renderOrders();});}
+  if(type==='product'){const p=state.products.find(x=>x.code===id);openConfirm('Delete product "'+p.name+'"?',()=>{state.products=state.products.filter(x=>x.code!==id);save();renderProducts();});}
+}
+let toastTimer;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
+function val(id){const e=document.getElementById(id);return e?e.value:'';}
+
+/* ============ Boot ============ */
+document.getElementById('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setView(b.dataset.view);});
+document.getElementById('btnConnect').onclick=handleConnectButton;
+document.getElementById('btnExport').onclick=exportData;
+document.getElementById('btnImport').onclick=()=>document.getElementById('fileInput').click();
+window.setView=setView;window.closeModal=closeModal;
+
+const _bv=document.getElementById('brandVer');if(_bv){_bv.textContent='v'+APP_VERSION;_bv.onclick=showChangelog;}
+document.title='Atelier (HA) v'+APP_VERSION;
+(async function(){await loadInitial();setStorageUI();setView('dashboard');maybeDailyBackup();showReconnectPrompt();})();
+</script>
+</body>
+</html>
