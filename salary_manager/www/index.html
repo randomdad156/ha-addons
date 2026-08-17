@@ -427,55 +427,21 @@ const CAT_ORDER = ["needs","wants","savings"];
 /* ---------- seeds (from the real Google Sheet) ---------- */
 function seedTasks(){
   return [
-    {label:"Send 700 RON to ING", amount:700},
-    {label:"Invest 500 RON from ING", amount:500},
-    {label:"Make a purchase with ING card", amount:null},
-    {label:"Make a purchase with CEC card", amount:null},
-    {label:"Pay NN Asigurari", amount:null},
-    {label:"Send 400 RON to STAR BT (Thermomix)", amount:400},
-    {label:"Check Emag wallet", amount:null},
-    {label:"Make second Revolut Loan repayment", amount:null},
+    {label:"Example: transfer to savings", amount:200},
+    {label:"Example: pay a bill", amount:100},
   ];
 }
 function seedIncome(){
-  return [ {id:uid(),label:"My Monthly Salary",amount:17000},
-           {id:uid(),label:"Rent Income",amount:2000} ];
+  return [ {id:uid(),label:"Salary",amount:0} ];
 }
 function seedPockets(){
   const p=(name,cat,amount,active,notes)=>({id:uid(),name:name,cat:cat,amount:amount,active:active,notes:notes||""});
   return [
-    p("Car Internet","needs",30,true),
-    p("Groceries","needs",3500,true),
-    p("Utilities","needs",1000,true),
-    p("Iulia Allowance","needs",200,true),
-    p("Stefan Allowance","needs",200,true),
-    p("Health Premium","needs",100,false),
-    p("CASCO & RCA","needs",500,true,"Annual - set aside monthly"),
-    p("Car Tires","needs",200,true,"Maintenance fund"),
-    p("Dentist","needs",1000,true),
-    p("Stem Cells for kids","needs",80,true),
-    p("Taxes","needs",150,true),
-    p("Thermomix Loan","needs",400,true,"2500 RON remaining (~6 months left)"),
-    p("Car Loan","needs",900,true,"7000 RON remaining (~8 months left)"),
-    p("Cookidoo","wants",25,true,"Subscription"),
-    p("Crunchyroll","wants",25,true,"Subscription"),
-    p("Clothing","wants",300,true),
-    p("Coffee","wants",259,true),
-    p("Netflix","wants",55,true,"Subscription"),
-    p("Birthdays","wants",200,true),
-    p("Prime Video","wants",20,true,"Subscription"),
-    p("Spotify","wants",26,true,"Subscription"),
-    p("YouTube Premium","wants",55,true,"Subscription"),
-    p("Hobby","wants",800,true),
-    p("Vacation","wants",2000,true,"Annual family vacation fund; also major home projects when no vacation planned"),
-    p("Swimming","wants",340,true),
-    p("Home Improvements","wants",800,true,"Shift to Needs if urgent repair"),
-    p("Spending (Anda)","wants",1600,true,"Misc family spending; surplus invested at month end"),
-    p("Safety Net","savings",1000,true,"Target: salary x5"),
-    p("Security","savings",1000,false,"TARGET REACHED (5000 RON). Resume if balance < 4000 RON"),
-    p("Unplanned","savings",500,true),
-    p("Investments (ING)","savings",500,true,"PLANNED: raise to 1800/mo once Thermomix + Car loans end (~early 2027)"),
-    p("NN Asigurari","savings",2000,true,"Pensie privata + children savings (paid at age 25)"),
+    p("Groceries","needs",0,true),
+    p("Utilities","needs",0,true),
+    p("Rent","needs",0,true),
+    p("Subscriptions","wants",0,true),
+    p("Savings","savings",0,true),
   ];
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -539,14 +505,14 @@ function migrate(d){
   if(!Array.isArray(d.pockets)) d.pockets=seedPockets();
   if(!d.rent || !Array.isArray(d.rent.months)) d.rent=seedRent();
   if(!d._subv1){
-    const subNames=["Cookidoo","Crunchyroll","Netflix","Prime Video","Spotify","YouTube Premium"];
+    const subNames=["Netflix","Prime Video","Spotify","YouTube Premium","Disney+","HBO Max"];
     (d.pockets||[]).forEach(p=>{ if(!p.notes && subNames.indexOf(p.name)>=0) p.notes="Subscription"; });
     d._subv1=true;
   }
   if(!d.rent._fixv1){
     (d.rent.months||[]).forEach(m=>{ if(!Array.isArray(m.bills)) m.bills=[];
       if(m.bills.length===0) m.bills=defaultBills();
-      (m.renters||[]).forEach(r=>{ if(r.name==="Couple") r.name="Andreea"; }); });
+      (m.renters||[]).forEach(r=>{ if(r.name==="Couple") r.name="Tenant"; }); });
     d.rent._fixv1=true;
   }
   if(!Array.isArray(d.template)) d.template=seedTasks().map(t=>({id:uid(),label:t.label,amount:t.amount}));
@@ -960,17 +926,7 @@ const ROMONTHS=["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie",
 function round2(n){ return Math.round((Number(n)||0)*100)/100; }
 function fmt2(n){ return (Number(n)||0).toLocaleString("en-US",{maximumFractionDigits:2}); }
 function seedRent(){
-  const R=(name,paid)=>({name:name,paid:paid});
-  const B=(name,amount,split)=>({name:name,amount:amount,split:split,paid:true});
-  const M=(name,rent,renters,bills)=>({id:uid(),name:name,year:2026,rent:rent,renters:renters,bills:bills});
-  return { months:[
-    M("Ianuarie",2000,[R("Louise",1525),R("Andreea",1486)],[B("Asociatie",124.97,true),B("Gas+Energy",847.72,true),B("Repair tax",31.54,false)]),
-    M("Februarie",2000,[R("Louise",1442),R("Andreea",1443)],[B("Asociatie",220.2,true),B("Gas+Energy",665.53,true),B("Repair tax",31.54,false)]),
-    M("Martie",2000,[R("Louise",1367),R("Andreea",1367)],[B("Asociatie",226.58,true),B("Gas+Energy",508.56,true),B("Repair tax",31.54,false)]),
-    M("Aprilie",2000,[R("Louise",1000),R("Andreea",1000)],[B("Asociatie",182.56,true),B("Gas+Energy",357.84,true),B("Repair tax",31.54,false)]),
-    M("Mai",2000,[R("Louise",1000),R("Andreea",1000)],defaultBills()),
-    M("Iunie",2000,[R("Andreea",0)],defaultBills())
-  ]};
+  return { months:[] };
 }
 function computeRent(m){
   const n=Math.max(1,(m.renters||[]).length);
