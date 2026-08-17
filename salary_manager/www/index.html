@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Salary Manager</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjM2I2Y2Y2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNmY0ZWY2Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9InVybCgjZykiLz48dGV4dCB4PSIzMiIgeT0iNDYiIGZvbnQtc2l6ZT0iNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIj7igrk8L3RleHQ+PC9zdmc+">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2430; --muted:#6b7688;
+    --line:#e6e9f0; --accent:#3b6cf6; --accent-soft:#e8efff;
+    --ok:#1f9d6b; --ok-soft:#e3f6ee; --warn:#d9822b; --warn-soft:#fbf0e2; --danger:#dc4b4b; --danger-soft:#fdeaea;
+    --needs:#3b6cf6; --wants:#a259e6; --savings:#1f9d6b;
+    --shadow:0 1px 3px rgba(20,30,50,.06),0 8px 24px rgba(20,30,50,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:24px 18px 90px}
+  header.app{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3b6cf6,#6f4ef6);
+       display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px}
+  .brand h1{font-size:19px;margin:0;font-weight:680;letter-spacing:-.2px}
+  .brand p{margin:0;font-size:12.5px;color:var(--muted)}
+  .tabs{display:flex;gap:6px;background:#eceff7;padding:4px;border-radius:11px}
+  .tabs button{border:0;background:transparent;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;
+       color:var(--muted);cursor:pointer;transition:.15s}
+  .tabs button.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+  .themetoggle{position:relative;width:50px;height:26px;border-radius:99px;border:1px solid var(--line);background:#e7ebf5;cursor:pointer;padding:0;flex:0 0 auto;transition:background .18s}
+  .themetoggle .knob{position:absolute;top:1px;left:1px;width:22px;height:22px;border-radius:99px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .18s}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .pad{padding:20px}
+
+  /* month header */
+  .mhead{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .mhead .mtitle{display:flex;flex-direction:column;gap:2px}
+  .mhead .mtitle .label{font-size:22px;font-weight:720;letter-spacing:-.4px}
+  .mhead .mtitle .sub{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  .mhead .mtitle .sub input{border:1px dashed transparent;background:transparent;font:inherit;color:var(--muted);
+       border-radius:6px;padding:2px 4px;cursor:pointer}
+  .mhead .mtitle .sub input:hover{border-color:var(--line)}
+  .mhead .mtitle .sub input:focus{outline:none;border:1px solid var(--accent);background:#fff;color:var(--ink)}
+  .paydate-edit{cursor:pointer;color:var(--ink);font-weight:600;border-bottom:1px dashed var(--muted)}
+  .hidden-date{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+  #payCountdown b{color:var(--accent)}
+
+  .progress-ring{display:flex;align-items:center;gap:14px}
+  .ring{position:relative;width:64px;height:64px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:720;font-size:15px}
+  .countpill{font-size:13px;color:var(--muted)}
+  .countpill b{color:var(--ink);font-size:15px}
+
+  .bar{height:8px;border-radius:99px;background:#edf0f7;overflow:hidden;margin:4px 0 18px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#6f4ef6);width:0;transition:width .35s ease}
+
+  /* task list */
+  ul.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  li.task{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;
+       background:#fff;transition:.15s;cursor:grab}
+  li.task.dragging{opacity:.5}
+  li.task.done{background:var(--ok-soft);border-color:#cdeede}
+  li.task .grip{color:#c3c9d6;font-size:15px;flex:0 0 auto;cursor:grab;user-select:none}
+  .check{flex:0 0 auto;width:23px;height:23px;border:2px solid #cdd4e2;border-radius:7px;cursor:pointer;
+       display:flex;align-items:center;justify-content:center;background:#fff;transition:.15s}
+  .check.on{background:var(--ok);border-color:var(--ok)}
+  .check.on::after{content:"\2713";color:#fff;font-size:14px;font-weight:800}
+  li.task .lbl{flex:1;font-size:15px;border:1px solid transparent;border-radius:7px;padding:3px 6px;background:transparent}
+  li.task.done .lbl{text-decoration:line-through;color:#5b7a6c}
+  li.task .lbl:focus{outline:none;border-color:var(--accent);background:#fff}
+  .amt{flex:0 0 auto;font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-soft);
+       padding:3px 9px;border-radius:99px;white-space:nowrap}
+  li.task.done .amt{color:var(--ok);background:#d7f1e5}
+  .del{flex:0 0 auto;border:0;background:transparent;color:#c3c9d6;font-size:17px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}
+  .del:hover{color:var(--danger);background:var(--danger-soft)}
+
+  .btn{border:0;border-radius:9px;padding:9px 15px;font-size:13.5px;font-weight:650;cursor:pointer;transition:.15s;
+       display:inline-flex;align-items:center;gap:7px}
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.primary:hover{background:#2f5de0}
+  .btn.ghost{background:#eef1f8;color:var(--ink)}
+  .btn.ghost:hover{background:#e3e8f4}
+  .btn.subtle{background:transparent;color:var(--muted);padding:8px 10px}
+  .btn.subtle:hover{color:var(--ink);background:#eef1f8}
+  .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;align-items:center}
+  .spacer{flex:1}
+
+  /* generic editable cells */
+  .ed{border:1px solid transparent;border-radius:7px;padding:3px 6px;background:transparent;font:inherit}
+  .ed:focus{outline:none;border-color:var(--accent);background:#fff}
+  input.num{width:96px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;text-align:right}
+  input.num:focus{outline:none;border-color:var(--accent)}
+  select.cat{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;background:#fff;cursor:pointer}
+
+  .sechead{font-size:14px;font-weight:680;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .hint{font-size:12.5px;color:var(--muted)}
+
+  /* stat cards */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px}
+  .stat{padding:16px 18px}
+  .stat .k{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .stat .v{font-size:25px;font-weight:760;letter-spacing:-.6px;margin-top:3px}
+  .stat .v small{font-size:13px;color:var(--muted);font-weight:600}
+
+  /* income rows */
+  .incRow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .incRow .lblw{flex:1}
+  .incTotal{display:flex;justify-content:space-between;align-items:center;padding-top:12px;font-weight:740;font-size:16px}
+
+  /* analysis */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:right;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:650}
+  .catdot{display:inline-block;width:9px;height:9px;border-radius:99px;margin-right:8px;vertical-align:middle}
+  .pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;white-space:nowrap}
+  .pill.good{color:var(--ok);background:var(--ok-soft)}
+  .pill.over{color:var(--danger);background:var(--danger-soft)}
+  .pill.warn{color:var(--warn);background:var(--warn-soft)}
+  tr.totalrow td{font-weight:740;border-top:2px solid var(--line);background:#fafbfe}
+
+  /* pockets */
+  .pgroup{margin-bottom:8px}
+  .pgrouphead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 4px;margin-top:8px}
+  .pgrouphead .gname{font-weight:700;font-size:14px;display:flex;align-items:center}
+  .pgrouphead .gsum{font-size:12.5px;color:var(--muted)}
+  .pocket{display:grid;grid-template-columns:30px 1fr 120px 96px 56px 24px;gap:8px;align-items:center;
+       padding:1px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:4px;background:#fff}
+  .pocket.off{opacity:.5;background:#fafbfe}
+  .pocket .pcol2{display:flex;flex-direction:column;justify-content:center;min-width:0}
+  .pocket .pname{font-size:13.5px;font-weight:560}
+  .pocket .pnotes{font-size:11px;line-height:1.3;color:var(--muted)}
+  .pocket .ppct{font-size:12px;color:var(--muted);text-align:right}
+  .pocket .num,.pocket select.cat{padding:3px 7px;font-size:13px}
+  .pocket .switch{width:30px;height:17px}
+  .pocket .switch::after{width:13px;height:13px}
+  .pocket .switch.on::after{left:14px}
+  .pocket .del{font-size:15px;padding:0 4px}
+  .switch{position:relative;width:34px;height:20px;border-radius:99px;background:#cdd4e2;cursor:pointer;transition:.18s;flex:0 0 auto}
+  .switch.on{background:var(--ok)}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:99px;background:#fff;transition:.18s}
+  .switch.on::after{left:16px}
+
+  /* file hint */
+  .filehint{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-top:14px;flex-wrap:wrap}
+  .storagebar{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .storagebar .btn{flex:0 0 auto}
+  .storagebar .dot{width:9px;height:9px}
+  .dot{width:8px;height:8px;border-radius:99px;background:#c3c9d6;flex:0 0 auto}
+  .dot.linked{background:var(--ok)}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:14px}
+
+  /* benefits */
+  .subtabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+  .subtab{border:1px solid var(--line);background:#fff;color:var(--muted);padding:7px 14px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .subtab:hover{color:var(--ink)}
+  .subtab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .bensearch{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 13px;font:inherit;margin-bottom:8px}
+  .bensearch:focus{outline:none;border-color:var(--accent)}
+  .bsec{font-size:13px;font-weight:700;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+  .bsec .cnt{font-size:11px;color:var(--muted);font-weight:600;background:#eef1f8;padding:1px 8px;border-radius:99px}
+  .bcard{border:1px solid var(--line);border-radius:11px;padding:12px 14px;margin-bottom:8px}
+  .bcard .bt{font-weight:650;font-size:14.5px}
+  .bcard .bm{font-size:12.5px;color:var(--accent);margin-top:2px;font-weight:600}
+  .bcard .bd{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.45}
+  .btag{display:inline-block;font-size:11.5px;font-weight:600;color:var(--muted);background:#eef1f8;border-radius:6px;padding:1px 8px;margin-top:7px}
+  .bgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .bempty{color:var(--muted);text-align:center;padding:28px;font-size:14px}
+
+  /* rent */
+  .rentmonth{margin-bottom:14px}
+  .rm-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+  .rm-title{font-size:18px;font-weight:720}
+  .rm-year{color:var(--muted);font-weight:600;font-size:14px}
+  .rm-status{font-size:12px;font-weight:700;padding:3px 11px;border-radius:99px;white-space:nowrap}
+  .rm-status.ok{color:var(--ok);background:var(--ok-soft)}
+  .rm-status.bad{color:var(--danger);background:var(--danger-soft)}
+  .rm-cfg{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .rlabel{font-size:11.5px;font-weight:650;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin:0 0 8px}
+  .billrow{display:grid;grid-template-columns:minmax(90px,1fr) 96px 34px 116px 62px 22px;gap:10px;align-items:center;padding:6px 0}
+  .renterrow{display:grid;grid-template-columns:minmax(90px,1fr) 96px 34px 116px 62px 22px;gap:10px;align-items:center;padding:6px 0}
+  .billrow .bname,.renterrow .rname{min-width:0}
+  .billrow .num,.renterrow .num{width:100%}
+  .billrow .tg,.renterrow .tg{justify-self:start}
+  .renterrow .remain{grid-column:span 2}
+  @media(max-width:560px){
+    .billrow{grid-template-columns:1fr 80px auto;}
+    .billrow .tg,.billrow .bdel{grid-column:span 1}
+  }
+  input.tx{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit}
+  input.tx:focus{outline:none;border-color:var(--accent)}
+  .tg{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer}
+  .remain{font-size:13px;font-weight:700;min-width:72px;text-align:right}
+  .remain.ok{color:var(--ok)} .remain.bad{color:var(--danger)}
+  @media(max-width:640px){.bgrid{grid-template-columns:1fr}}
+
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:#1c2430;color:#fff;
+       padding:11px 18px;border-radius:10px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:50;box-shadow:var(--shadow)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .hidden{display:none!important}
+
+  /* ===== dark mode ===== */
+  body.dark{
+    color-scheme:dark;
+    --bg:#0f131a; --card:#171c26; --ink:#e8ecf3; --muted:#95a1b4; --line:#2a3140;
+    --accent:#5b86f7; --accent-soft:#1d2840;
+    --ok:#37c08a; --ok-soft:#16281f; --warn:#e0a24c; --warn-soft:#2c2414; --danger:#ef6d6d; --danger-soft:#2e1a1c;
+    --needs:#5b86f7; --wants:#b27cf0; --savings:#37c08a;
+    --shadow:0 1px 3px rgba(0,0,0,.35),0 10px 26px rgba(0,0,0,.45);
+  }
+  body.dark .tabs{background:#1e2532}
+  body.dark .bar,body.dark .minibar,body.dark td .minibar{background:#222a38}
+  body.dark .check{background:var(--card);border-color:#3a4456}
+  body.dark input,body.dark select,body.dark textarea{background:var(--card);color:var(--ink);border-color:var(--line)}
+  body.dark .ed:focus,body.dark input:focus,body.dark select:focus,body.dark textarea:focus,
+  body.dark li.task .lbl:focus,body.dark .mhead .mtitle .sub input:focus{background:#0f131a;color:var(--ink)}
+  body.dark .switch{background:#3a4456}
+  body.dark li.task,body.dark .pocket,body.dark .subtab,body.dark .bcard{background:var(--card)}
+  body.dark li.task.done{background:#16281f;border-color:#1f3a2c}
+  body.dark .pocket.off{background:#11161e}
+  body.dark .btn.ghost{background:#232b3a;color:var(--ink)}
+  body.dark .btn.ghost:hover{background:#2b3445}
+  body.dark .btn.subtle:hover{background:#232b3a;color:var(--ink)}
+  body.dark .bsec .cnt,body.dark .btag{background:#232b3a;color:var(--muted)}
+  body.dark tr.totalrow td{background:#1b212d}
+  body.dark .ring svg circle:first-of-type{stroke:#222a38}
+  body.dark .subtab{border-color:var(--line)}
+  body.dark .subtab.active{background:#e8ecf3;color:#10141b;border-color:#e8ecf3}
+  body.dark #toast{background:#e8ecf3;color:#10141b}
+  body.dark .stat .v small,body.dark .countpill b{color:var(--ink)}
+  body.dark .themetoggle{background:#3a4456}
+  body.dark .themetoggle .knob{left:25px;background:#0f131a}
+  @media(max-width:640px){
+    .pocket{grid-template-columns:30px 1fr 96px;grid-auto-rows:auto}
+    .pocket select.cat,.pocket .ppct{grid-column:2 / -1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <div class="brand">
+      <div class="logo">&#8377;</div>
+      <div>
+        <h1>Salary Manager</h1>
+        <p>Monthly checklist &amp; budget tracker</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="tabs">
+        <button id="tab-month" class="active" onclick="setView('month')">This Month</button>
+        <button id="tab-dash" onclick="setView('dash')">Dashboard</button>
+        <button id="tab-rent" onclick="setView('rent')">Rent</button>
+        <button id="tab-benefits" onclick="setView('benefits')">Benefits</button>
+      </div>
+      <button class="themetoggle" id="themeBtn" onclick="toggleTheme()" title="Toggle light / dark" aria-label="Toggle light / dark"><span class="knob" id="themeIcon">&#9728;</span></button>
+    </div>
+  </header>
+
+  <!-- storage status bar (all tabs) -->
+  <div class="card pad storagebar">
+    <span class="dot" id="linkDot"></span>
+    <div style="flex:1;min-width:180px">
+      <div id="linkText" style="font-weight:650;font-size:13.5px">Data saved in this browser only</div>
+      <div class="hint" id="linkSub">Link a file to keep your data in a movable JSON you control.</div>
+    </div>
+    <button class="btn primary" id="linkBtn" onclick="storageAction()">Choose data file</button>
+  </div>
+
+  <!-- ============ THIS MONTH ============ -->
+  <section id="view-month">
+    <div class="card pad">
+      <div class="mhead">
+        <div class="mtitle">
+          <span class="label" id="mLabel">&mdash;</span>
+          <span class="sub" id="payCountdown"></span>
+        </div>
+        <div class="progress-ring">
+          <div class="ring">
+            <svg width="64" height="64">
+              <circle cx="32" cy="32" r="27" fill="none" stroke="#edf0f7" stroke-width="8"/>
+              <circle id="ringFg" cx="32" cy="32" r="27" fill="none" stroke="url(#g)" stroke-width="8"
+                      stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="169.6"/>
+              <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#3b6cf6"/><stop offset="1" stop-color="#6f4ef6"/>
+              </linearGradient></defs>
+            </svg>
+            <div class="pct" id="ringPct">0%</div>
+          </div>
+          <div class="countpill"><b id="cntDone">0</b> / <span id="cntTotal">0</span><br>tasks done</div>
+        </div>
+      </div>
+      <div class="bar"><i id="topBar"></i></div>
+      <ul class="tasks" id="taskList"></ul>
+      <div class="actions">
+        <button class="btn ghost" onclick="addTask()">+ Add task</button>
+        <span class="spacer"></span>
+        <button class="btn subtle" onclick="openTemplate()">Manage template</button>
+        <button class="btn primary" onclick="startNewMonth()">Start new month &rarr;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="view-dash" class="hidden">
+    <div class="stats">
+      <div class="card stat"><div class="k">Total income</div><div class="v" id="sIncome">0 <small>RON</small></div></div>
+      <div class="card stat"><div class="k">Allocated</div><div class="v" id="sAlloc">0 <small>RON</small></div></div>
+      <div class="card stat"><div class="k">Unallocated</div><div class="v" id="sUnalloc">0 <small>RON</small></div></div>
+      <div class="card stat"><div class="k">Active pockets</div><div class="v" id="sPockets">0</div></div>
+    </div>
+
+    <!-- Income -->
+    <div class="card pad" style="margin-bottom:18px">
+      <p class="sechead">&#128176; Monthly income</p>
+      <div id="incomeList"></div>
+      <div class="incTotal"><span>Total income</span><span id="incomeTotal">0 RON</span></div>
+      <div class="actions"><button class="btn ghost" onclick="addIncome()">+ Add income source</button></div>
+    </div>
+
+    <!-- 50/30/20 analysis -->
+    <div class="card pad" style="margin-bottom:18px">
+      <p class="sechead" id="anaHead" onclick="toggleAna()" style="cursor:pointer;margin-bottom:0">
+        <span id="anaCaret" style="display:inline-block;transition:.15s;font-size:11px">&#9662;</span>
+        &#9878;&#65039; 50 / 30 / 20 analysis
+        <span class="hint" style="font-weight:400">&middot; auto-calculated</span>
+        <span class="spacer"></span>
+        <button class="btn subtle" id="chartToggle" onclick="event.stopPropagation();toggleChart()">Show chart</button>
+      </p>
+      <div id="anaBody" style="margin-top:12px">
+        <div style="overflow-x:auto"><table id="analysisTable"></table></div>
+        <div id="chartBox" class="hidden" style="position:relative;height:150px;margin-top:14px"><canvas id="budgetChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- subscriptions analysis -->
+    <div class="card pad" style="margin-bottom:18px">
+      <p class="sechead" id="subHead" onclick="toggleSub()" style="cursor:pointer;margin-bottom:0">
+        <span id="subCaret" style="display:inline-block;transition:.15s;font-size:11px">&#9662;</span>
+        &#128257; Subscriptions
+        <span class="hint" style="font-weight:400">&middot; pockets noted &ldquo;Subscription&rdquo;</span>
+      </p>
+      <div id="subBody" style="margin-top:12px">
+        <div class="hint" id="subSummary" style="margin-bottom:10px"></div>
+        <div style="overflow-x:auto"><table id="subTable"></table></div>
+      </div>
+    </div>
+
+    <!-- Pockets -->
+    <div class="card pad" style="margin-bottom:18px">
+      <p class="sechead">&#129534; Pockets <span class="hint" style="font-weight:400">&middot; toggle off to pause &amp; exclude from analysis</span></p>
+      <div id="pocketsWrap"></div>
+      <div class="actions"><button class="btn ghost" onclick="addPocket()">+ Add pocket</button></div>
+    </div>
+
+  </section>
+
+  <!-- ============ RENT ============ -->
+  <section id="view-rent" class="hidden">
+    <div class="card pad" style="margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <p class="sechead" style="margin:0">&#127968; Rent &amp; bills</p>
+        <div class="hint" id="rentSummary" style="margin-top:4px"></div>
+      </div>
+    </div>
+    <div id="rentList"></div>
+  </section>
+
+  <!-- ============ BENEFITS ============ -->
+  <section id="view-benefits" class="hidden">
+    <div class="card pad">
+      <div class="subtabs">
+        <button class="subtab active" data-bt="cec" onclick="setBenefitsTab('cec')">CEC Visa Infinite</button>
+        <button class="subtab" data-bt="visa" onclick="setBenefitsTab('visa')">Visa Infinite Offers</button>
+        <button class="subtab" data-bt="bazar" onclick="setBenefitsTab('bazar')">ING Bazar</button>
+      </div>
+      <input id="benSearch" class="bensearch" placeholder="Search benefits, partners, details..." oninput="renderBenefitsBody()"/>
+      <div id="benefitsBody"></div>
+    </div>
+  </section>
+</div>
+
+<!-- template modal -->
+<div id="tplModal" class="hidden" style="position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:40;display:flex;align-items:center;justify-content:center;padding:18px">
+  <div class="card pad" style="max-width:520px;width:100%;max-height:85vh;overflow:auto">
+    <p class="sechead" style="font-size:16px">Recurring task template</p>
+    <p class="hint" style="margin-top:-6px">Used when you start a new month. Amounts optional.</p>
+    <ul class="tasks" id="tplList" style="margin-top:14px"></ul>
+    <div class="actions">
+      <button class="btn ghost" onclick="tplAdd()">+ Add</button>
+      <span class="spacer"></span>
+      <button class="btn subtle" onclick="closeTemplate()">Cancel</button>
+      <button class="btn primary" onclick="saveTemplate()">Save template</button>
+    </div>
+  </div>
+</div>
+
+<div id="reconnectModal" class="hidden" style="position:fixed;inset:0;background:rgba(20,30,50,.5);z-index:60;display:flex;align-items:center;justify-content:center;padding:18px">
+  <div class="card pad" style="max-width:400px;width:100%;text-align:center">
+    <div style="font-size:32px;line-height:1">&#128274;</div>
+    <p class="sechead" style="justify-content:center;font-size:16px;margin-top:8px">Connect your data file</p>
+    <p class="hint" id="reconnectMsg" style="margin-top:-4px">Reconnect so your changes save to your file.</p>
+    <div class="actions" style="justify-content:center;margin-top:16px">
+      <button class="btn primary" id="reconnectBtn" onclick="reconnectFromModal()">Reconnect &amp; load</button>
+      <button class="btn subtle" onclick="hideReconnectModal()">Not now</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+const LS_KEY = "salaryManagerData_v2";
+const RING_CIRC = 2 * Math.PI * 27;
+const CATS = {
+  needs:{name:"Needs", ratio:50, color:"var(--needs)", hex:"#3b6cf6", healthy:"under"},
+  wants:{name:"Wants", ratio:30, color:"var(--wants)", hex:"#a259e6", healthy:"under"},
+  savings:{name:"Savings", ratio:20, color:"var(--savings)", hex:"#1f9d6b", healthy:"over"}
+};
+const CAT_ORDER = ["needs","wants","savings"];
+
+/* ---------- seeds (from the real Google Sheet) ---------- */
+function seedTasks(){
+  return [
+    {label:"Send 700 RON to ING", amount:700},
+    {label:"Invest 500 RON from ING", amount:500},
+    {label:"Make a purchase with ING card", amount:null},
+    {label:"Make a purchase with CEC card", amount:null},
+    {label:"Pay NN Asigurari", amount:null},
+    {label:"Send 400 RON to STAR BT (Thermomix)", amount:400},
+    {label:"Check Emag wallet", amount:null},
+    {label:"Make second Revolut Loan repayment", amount:null},
+  ];
+}
+function seedIncome(){
+  return [ {id:uid(),label:"My Monthly Salary",amount:17000},
+           {id:uid(),label:"Rent Income",amount:2000} ];
+}
+function seedPockets(){
+  const p=(name,cat,amount,active,notes)=>({id:uid(),name:name,cat:cat,amount:amount,active:active,notes:notes||""});
+  return [
+    p("Car Internet","needs",30,true),
+    p("Groceries","needs",3500,true),
+    p("Utilities","needs",1000,true),
+    p("Iulia Allowance","needs",200,true),
+    p("Stefan Allowance","needs",200,true),
+    p("Health Premium","needs",100,false),
+    p("CASCO & RCA","needs",500,true,"Annual - set aside monthly"),
+    p("Car Tires","needs",200,true,"Maintenance fund"),
+    p("Dentist","needs",1000,true),
+    p("Stem Cells for kids","needs",80,true),
+    p("Taxes","needs",150,true),
+    p("Thermomix Loan","needs",400,true,"2500 RON remaining (~6 months left)"),
+    p("Car Loan","needs",900,true,"7000 RON remaining (~8 months left)"),
+    p("Cookidoo","wants",25,true,"Subscription"),
+    p("Crunchyroll","wants",25,true,"Subscription"),
+    p("Clothing","wants",300,true),
+    p("Coffee","wants",259,true),
+    p("Netflix","wants",55,true,"Subscription"),
+    p("Birthdays","wants",200,true),
+    p("Prime Video","wants",20,true,"Subscription"),
+    p("Spotify","wants",26,true,"Subscription"),
+    p("YouTube Premium","wants",55,true,"Subscription"),
+    p("Hobby","wants",800,true),
+    p("Vacation","wants",2000,true,"Annual family vacation fund; also major home projects when no vacation planned"),
+    p("Swimming","wants",340,true),
+    p("Home Improvements","wants",800,true,"Shift to Needs if urgent repair"),
+    p("Spending (Anda)","wants",1600,true,"Misc family spending; surplus invested at month end"),
+    p("Safety Net","savings",1000,true,"Target: salary x5"),
+    p("Security","savings",1000,false,"TARGET REACHED (5000 RON). Resume if balance < 4000 RON"),
+    p("Unplanned","savings",500,true),
+    p("Investments (ING)","savings",500,true,"PLANNED: raise to 1800/mo once Thermomix + Car loans end (~early 2027)"),
+    p("NN Asigurari","savings",2000,true,"Pensie privata + children savings (paid at age 25)"),
+  ];
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function monthLabel(d){ return d.toLocaleString("en-US",{month:"short",year:"numeric"}).replace(" ","-"); }
+/* ----- pay-date rules: 7th, moved to previous working day if weekend/holiday (Romania) ----- */
+function pad2(n){ return String(n).padStart(2,"0"); }
+function ymd(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+function dmy(d){ return pad2(d.getDate())+"/"+pad2(d.getMonth()+1)+"/"+d.getFullYear(); }
+function fmtEU(v){ if(!v) return "—";
+  if(typeof v==="string"){ const m=v.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[3]+"/"+m[2]+"/"+m[1]; const d=new Date(v); return isNaN(d)?v:dmy(d); }
+  return dmy(v); }
+function orthodoxEaster(y){ // Meeus Julian -> Gregorian
+  const a=y%4,b=y%7,c=y%19,d=(19*c+15)%30,e=(2*a+4*b-d+34)%7;
+  const month=Math.floor((d+e+114)/31), day=((d+e+114)%31)+1;
+  const dt=new Date(y, month-1, day); dt.setDate(dt.getDate()+13); return dt;
+}
+let _holCache={};
+function roHolidays(y){
+  if(_holCache[y]) return _holCache[y];
+  const set=new Set(); const add=(mo,da)=>set.add(y+"-"+pad2(mo)+"-"+pad2(da));
+  add(1,1);add(1,2);add(1,24);add(5,1);add(6,1);add(8,15);add(11,30);add(12,1);add(12,25);add(12,26);
+  const e=orthodoxEaster(y);
+  [-2,0,1,49,50].forEach(off=>{ const d=new Date(e); d.setDate(d.getDate()+off); set.add(ymd(d)); });
+  _holCache[y]=set; return set;
+}
+function isWorkingDay(d){ const wd=d.getDay(); if(wd===0||wd===6) return false; return !roHolidays(d.getFullYear()).has(ymd(d)); }
+function payDateFor(y,m){ const d=new Date(y,m,7); while(!isWorkingDay(d)){ d.setDate(d.getDate()-1); } return d; }
+function nextPayDate(from){
+  const t=new Date(from.getFullYear(),from.getMonth(),from.getDate());
+  let p=payDateFor(t.getFullYear(),t.getMonth());
+  if(p<t){ let ny=t.getFullYear(), nm=t.getMonth()+1; if(nm>11){nm=0;ny++;} p=payDateFor(ny,nm); }
+  return p;
+}
+function defaultPayDate(d){ d=d||new Date(); return ymd(payDateFor(d.getFullYear(), d.getMonth())); }
+function updatePaydayInfo(){
+  const np=nextPayDate(new Date());
+  const today=new Date(); today.setHours(0,0,0,0);
+  const days=Math.round((np-today)/86400000);
+  const cd=document.getElementById("payCountdown"); if(!cd) return;
+  if(days<=0){
+    let ny=today.getFullYear(), nm=today.getMonth()+1; if(nm>11){ nm=0; ny++; }
+    cd.innerHTML="<b>Payday is today!</b> &middot; next: "+fmtEU(payDateFor(ny,nm));
+  } else {
+    cd.innerHTML="Next payday in <b>"+days+(days===1?" day":" days")+"</b> &middot; "+fmtEU(np);
+  }
+}
+
+function defaultData(){
+  const now=new Date();
+  const tpl=seedTasks().map(t=>({id:uid(),label:t.label,amount:t.amount}));
+  const month={id:uid(),label:monthLabel(now),payDate:defaultPayDate(now),
+    tasks:tpl.map(t=>({id:uid(),label:t.label,amount:t.amount,done:false}))};
+  return {version:2, template:tpl, months:[month], currentId:month.id,
+          income:seedIncome(), pockets:seedPockets(), rent:seedRent()};
+}
+/* migrate older saved data so new fields always exist */
+function migrate(d){
+  if(!d || typeof d!=="object") return defaultData();
+  if(!Array.isArray(d.months)) return defaultData();
+  if(!Array.isArray(d.income)) d.income=seedIncome();
+  if(!Array.isArray(d.pockets)) d.pockets=seedPockets();
+  if(!d.rent || !Array.isArray(d.rent.months)) d.rent=seedRent();
+  if(!d._subv1){
+    const subNames=["Cookidoo","Crunchyroll","Netflix","Prime Video","Spotify","YouTube Premium"];
+    (d.pockets||[]).forEach(p=>{ if(!p.notes && subNames.indexOf(p.name)>=0) p.notes="Subscription"; });
+    d._subv1=true;
+  }
+  if(!d.rent._fixv1){
+    (d.rent.months||[]).forEach(m=>{ if(!Array.isArray(m.bills)) m.bills=[];
+      if(m.bills.length===0) m.bills=defaultBills();
+      (m.renters||[]).forEach(r=>{ if(r.name==="Couple") r.name="Andreea"; }); });
+    d.rent._fixv1=true;
+  }
+  if(!Array.isArray(d.template)) d.template=seedTasks().map(t=>({id:uid(),label:t.label,amount:t.amount}));
+  return d;
+}
+
+/* ---------- state ---------- */
+let data=migrate(load());
+let view="month";
+let fileHandle=null;
+let _srvTimer=null;
+
+function load(){ try{var xhr=new XMLHttpRequest();xhr.open("GET","data",false);xhr.send();if(xhr.status>=200&&xhr.status<300){var t=(xhr.responseText||"").trim();if(t&&t!=="null")return JSON.parse(t);}}catch(e){} try{const r=localStorage.getItem(LS_KEY); if(r) return JSON.parse(r);}catch(e){} return defaultData(); }
+function persist(){ try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){} clearTimeout(_srvTimer); _srvTimer=setTimeout(function(){try{fetch("data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});}catch(e){}},400); }
+function currentMonth(){ return data.months.find(m=>m.id===data.currentId)||data.months[data.months.length-1]; }
+function fmt(n){ return Number(n||0).toLocaleString("en-US"); }
+
+/* =================== THIS MONTH =================== */
+function render(){
+  const m=currentMonth();
+  document.getElementById("mLabel").textContent=m.label;
+  updatePaydayInfo();
+  const total=m.tasks.length, done=m.tasks.filter(t=>t.done).length, pct=total?Math.round(done/total*100):0;
+  document.getElementById("cntDone").textContent=done;
+  document.getElementById("cntTotal").textContent=total;
+  document.getElementById("ringPct").textContent=pct+"%";
+  document.getElementById("ringFg").setAttribute("stroke-dashoffset",RING_CIRC*(1-pct/100));
+  document.getElementById("topBar").style.width=pct+"%";
+  const list=document.getElementById("taskList"); list.innerHTML="";
+  if(!total) list.innerHTML='<div class="empty">No tasks yet. Add one below.</div>';
+  m.tasks.forEach((t,i)=>{
+    const li=document.createElement("li");
+    li.className="task"+(t.done?" done":""); li.draggable=true; li.dataset.i=i;
+    li.innerHTML='<span class="grip">&#8942;&#8942;</span>'+
+      '<div class="check '+(t.done?"on":"")+'" title="Toggle done"></div>'+
+      '<span class="lbl ed" contenteditable="true" spellcheck="false"></span>'+
+      ((t.amount!=null&&t.amount!=="")?'<span class="amt">'+fmt(t.amount)+' RON</span>':'')+
+      '<button class="del" title="Delete">&times;</button>';
+    li.querySelector(".lbl").textContent=t.label;
+    li.querySelector(".check").onclick=()=>toggle(t.id);
+    li.querySelector(".lbl").onblur=(e)=>editLabel(t.id,e.target.textContent);
+    li.querySelector(".lbl").onkeydown=(e)=>{if(e.key==="Enter"){e.preventDefault();e.target.blur();}};
+    li.querySelector(".del").onclick=()=>delTask(t.id);
+    wireDrag(li); list.appendChild(li);
+  });
+}
+function toggle(id){const m=currentMonth();const t=m.tasks.find(x=>x.id===id);if(t){t.done=!t.done;persist();render();}}
+function editLabel(id,v){const m=currentMonth();const t=m.tasks.find(x=>x.id===id);if(t&&t.label!==v.trim()){t.label=v.trim();persist();}}
+function delTask(id){const m=currentMonth();m.tasks=m.tasks.filter(x=>x.id!==id);persist();render();}
+function addTask(){const m=currentMonth();m.tasks.push({id:uid(),label:"New task",amount:null,done:false});persist();render();
+  const last=document.querySelector("#taskList li.task:last-child .lbl");if(last){last.focus();document.getSelection().selectAllChildren(last);}}
+
+let dragEl=null;
+function wireDrag(li){
+  li.addEventListener("dragstart",()=>{dragEl=li;li.classList.add("dragging");});
+  li.addEventListener("dragend",()=>{li.classList.remove("dragging");
+    const order=[].slice.call(document.querySelectorAll("#taskList li.task")).map(el=>parseInt(el.dataset.i));
+    const m=currentMonth();m.tasks=order.map(i=>m.tasks[i]);persist();render();});
+  li.addEventListener("dragover",(e)=>{e.preventDefault();const list=document.getElementById("taskList");
+    const after=getDragAfter(list,e.clientY);if(after==null)list.appendChild(dragEl);else list.insertBefore(dragEl,after);});
+}
+function getDragAfter(list,y){
+  const els=[].slice.call(list.querySelectorAll("li.task:not(.dragging)"));
+  return els.reduce((c,ch)=>{const b=ch.getBoundingClientRect();const o=y-b.top-b.height/2;
+    return (o<0&&o>c.offset)?{offset:o,element:ch}:c;},{offset:-Infinity}).element;
+}
+function enMonthIdx(name){
+  const en=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+  let i=en.indexOf(String(name).slice(0,3).toLowerCase());
+  if(i<0) i=ROMONTHS.findIndex(r=>r.toLowerCase()===String(name).toLowerCase());
+  return i;
+}
+function nextMonthLabel(){
+  const EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const cur=currentMonth(); const m=((cur&&cur.label)||"").match(/^([A-Za-z]+)[\s-]+(\d{4})$/);
+  if(m){ let i=enMonthIdx(m[1]), yr=parseInt(m[2]);
+    if(i>=0){ i++; if(i>11){ i=0; yr++; } return EN[i]+"-"+yr; } }
+  return monthLabel(new Date());
+}
+function payDateForLabel(label){
+  const m=String(label).match(/^([A-Za-z]+)[\s-]+(\d{4})$/);
+  if(m){ const i=enMonthIdx(m[1]); if(i>=0) return ymd(payDateFor(parseInt(m[2]),i)); }
+  return defaultPayDate(new Date());
+}
+function startNewMonth(){
+  const label=prompt("Name for the new month:",nextMonthLabel()); if(!label) return;
+  const pay=payDateForLabel(label.trim());
+  const month={id:uid(),label:label.trim(),payDate:pay,
+    tasks:(data.template||[]).map(t=>({id:uid(),label:t.label,amount:t.amount,done:false}))};
+  data.months.push(month); data.currentId=month.id; persist(); render();
+  toast("Started "+label.trim()+" - payday "+fmtEU(pay));
+}
+
+/* template modal */
+let tplDraft=[];
+function openTemplate(){tplDraft=(data.template||[]).map(t=>({id:t.id,label:t.label,amount:t.amount}));renderTpl();
+  document.getElementById("tplModal").classList.remove("hidden");}
+function closeTemplate(){document.getElementById("tplModal").classList.add("hidden");}
+function renderTpl(){
+  const list=document.getElementById("tplList");list.innerHTML="";
+  tplDraft.forEach((t,i)=>{const li=document.createElement("li");li.className="task";li.style.cursor="default";
+    li.innerHTML='<span class="lbl ed" contenteditable="true" spellcheck="false" style="flex:2"></span>'+
+      '<input type="number" class="num" placeholder="amount" value="'+(t.amount==null?"":t.amount)+'" style="width:90px"/>'+
+      '<span class="hint">RON</span><button class="del">&times;</button>';
+    li.querySelector(".lbl").textContent=t.label;
+    li.querySelector(".lbl").onblur=(e)=>tplDraft[i].label=e.target.textContent.trim();
+    li.querySelector("input").onchange=(e)=>tplDraft[i].amount=e.target.value===""?null:Number(e.target.value);
+    li.querySelector(".del").onclick=()=>{tplDraft.splice(i,1);renderTpl();};
+    list.appendChild(li);});
+}
+function tplAdd(){tplDraft.push({id:uid(),label:"New task",amount:null});renderTpl();
+  const last=document.querySelector("#tplList li:last-child .lbl");if(last)last.focus();}
+function saveTemplate(){const lis=document.querySelectorAll("#tplList li");
+  lis.forEach((li,i)=>{if(tplDraft[i])tplDraft[i].label=li.querySelector(".lbl").textContent.trim();});
+  data.template=tplDraft.filter(t=>t.label);persist();closeTemplate();toast("Template saved");}
+
+/* =================== DASHBOARD =================== */
+function totalIncome(){ return (data.income||[]).reduce((s,i)=>s+(Number(i.amount)||0),0); }
+function analysis(){
+  const inc=totalIncome();
+  const out={income:inc, cats:{}, allocated:0};
+  CAT_ORDER.forEach(k=>{
+    const target=Math.round(inc*CATS[k].ratio/100);
+    const alloc=(data.pockets||[]).filter(p=>p.active&&p.cat===k).reduce((s,p)=>s+(Number(p.amount)||0),0);
+    out.cats[k]={target:target, alloc:alloc, diff:target-alloc};
+    out.allocated+=alloc;
+  });
+  out.unalloc=inc-out.allocated;
+  return out;
+}
+function statusPill(k,diff){
+  // diff = target - allocated. For needs/wants: positive=under budget (good). For savings: negative means over-saving (good).
+  const a=CATS[k];
+  if(a.healthy==="under"){
+    if(diff>=0) return '<span class="pill good">'+fmt(diff)+' under</span>';
+    return '<span class="pill over">'+fmt(-diff)+' over</span>';
+  }else{ // savings: want allocated >= target
+    if(diff<=0) return '<span class="pill good">'+fmt(-diff)+' over target</span>';
+    return '<span class="pill warn">'+fmt(diff)+' short</span>';
+  }
+}
+let budgetChart=null;
+const UI_KEY="salaryManagerUI_v1";
+let ui=loadUI();
+function loadUI(){try{const r=localStorage.getItem(UI_KEY);if(r)return JSON.parse(r);}catch(e){}return {anaOpen:true,chart:false,theme:"light",subOpen:true};}
+function saveUI(){try{localStorage.setItem(UI_KEY,JSON.stringify(ui));}catch(e){}}
+function applyAnaUI(){
+  document.getElementById("anaBody").classList.toggle("hidden",!ui.anaOpen);
+  document.getElementById("anaCaret").style.transform=ui.anaOpen?"none":"rotate(-90deg)";
+  document.getElementById("chartBox").classList.toggle("hidden",!ui.chart);
+  document.getElementById("chartToggle").textContent=ui.chart?"Hide chart":"Show chart";
+}
+function toggleAna(){ui.anaOpen=!ui.anaOpen;saveUI();applyAnaUI();}
+function toggleChart(){ui.chart=!ui.chart;saveUI();applyAnaUI();if(ui.chart)renderBudgetChart(analysis());}
+function applyTheme(rerender){
+  const dark=ui.theme==="dark";
+  document.body.classList.toggle("dark",dark);
+  const ic=document.getElementById("themeIcon"); if(ic) ic.textContent=dark?"☾":"☀";
+  if(window.Chart){ Chart.defaults.color=dark?"#95a1b4":"#6b7688"; Chart.defaults.borderColor=dark?"#2a3140":"#e6e9f0"; }
+  if(rerender){ if(view==="dash")renderDash(); else if(view==="rent")renderRent(); else if(view==="benefits")renderBenefits(); else render(); }
+}
+function toggleTheme(){ ui.theme=(ui.theme==="dark")?"light":"dark"; saveUI(); applyTheme(true); }
+function renderDash(){
+  const a=analysis();
+  document.getElementById("sIncome").innerHTML=fmt(a.income)+' <small>RON</small>';
+  document.getElementById("sAlloc").innerHTML=fmt(a.allocated)+' <small>RON</small>';
+  document.getElementById("sUnalloc").innerHTML=fmt(a.unalloc)+' <small>RON</small>';
+  document.getElementById("sPockets").textContent=(data.pockets||[]).filter(p=>p.active).length;
+
+  renderIncome();
+  renderAnalysisTable(a);
+  renderSubs();
+  renderPockets(a);
+  applyAnaUI();
+  if(ui.chart) renderBudgetChart(a);
+}
+
+/* income */
+function renderIncome(){
+  const wrap=document.getElementById("incomeList"); wrap.innerHTML="";
+  (data.income||[]).forEach(item=>{
+    const row=document.createElement("div"); row.className="incRow";
+    row.innerHTML='<span class="lblw ed" contenteditable="true" spellcheck="false"></span>'+
+      '<input type="number" class="num" value="'+(item.amount==null?"":item.amount)+'"/>'+
+      '<span class="hint">RON</span><button class="del">&times;</button>';
+    row.querySelector(".lblw").textContent=item.label;
+    row.querySelector(".lblw").onblur=(e)=>{item.label=e.target.textContent.trim();persist();};
+    row.querySelector("input").onchange=(e)=>{item.amount=e.target.value===""?0:Number(e.target.value);persist();renderDash();};
+    row.querySelector(".del").onclick=()=>{data.income=data.income.filter(x=>x!==item);persist();renderDash();};
+    wrap.appendChild(row);
+  });
+  document.getElementById("incomeTotal").textContent=fmt(totalIncome())+" RON";
+}
+function addIncome(){data.income.push({id:uid(),label:"New income",amount:0});persist();renderDash();}
+
+/* subscriptions analysis */
+function isSub(p){ return !!(p.notes && /subscription/i.test(p.notes)); }
+function applySubUI(){
+  const open=ui.subOpen!==false;
+  const b=document.getElementById("subBody"); if(b) b.classList.toggle("hidden",!open);
+  const c=document.getElementById("subCaret"); if(c) c.style.transform=open?"none":"rotate(-90deg)";
+}
+function toggleSub(){ ui.subOpen=(ui.subOpen===false); saveUI(); applySubUI(); }
+function renderSubs(){
+  const inc=totalIncome()||0;
+  const subs=(data.pockets||[]).filter(p=>p.active && isSub(p)).slice().sort((x,y)=>(Number(y.amount)||0)-(Number(x.amount)||0));
+  const total=subs.reduce((s,p)=>s+(Number(p.amount)||0),0);
+  const pctInc=inc?(total/inc*100):0;
+  document.getElementById("subSummary").innerHTML = subs.length
+    ? ("<b>"+fmt(total)+" RON</b> / month across <b>"+subs.length+"</b> subscriptions &middot; "+pctInc.toFixed(1)+"% of income")
+    : "No subscriptions tagged yet — add a pocket note containing &ldquo;Subscription&rdquo; to include it here.";
+  let html="";
+  if(subs.length){
+    html='<thead><tr><th>Subscription</th><th>Category</th><th>Amount</th><th>% income</th></tr></thead><tbody>'+
+      subs.map(p=>'<tr><td><span class="catdot" style="background:'+CATS[p.cat].hex+'"></span>'+esc(p.name)+'</td>'+
+        '<td>'+CATS[p.cat].name+'</td><td>'+fmt(p.amount)+'</td><td>'+(inc?((Number(p.amount)||0)/inc*100).toFixed(2):"0")+'%</td></tr>').join("")+
+      '<tr class="totalrow"><td>Total</td><td></td><td>'+fmt(total)+'</td><td>'+pctInc.toFixed(2)+'%</td></tr></tbody>';
+  }
+  document.getElementById("subTable").innerHTML=html;
+  applySubUI();
+}
+
+/* analysis table */
+function renderAnalysisTable(a){
+  let html='<thead><tr><th>Category</th><th>Target %</th><th>Target</th><th>Allocated</th><th>Status</th></tr></thead><tbody>';
+  CAT_ORDER.forEach(k=>{
+    const c=a.cats[k];
+    html+='<tr><td><span class="catdot" style="background:'+CATS[k].hex+'"></span>'+CATS[k].name+'</td>'+
+      '<td>'+CATS[k].ratio+'%</td><td>'+fmt(c.target)+'</td><td>'+fmt(c.alloc)+'</td>'+
+      '<td>'+statusPill(k,c.diff)+'</td></tr>';
+  });
+  const unallocPill = a.unalloc>=0
+    ? '<span class="pill good">'+fmt(a.unalloc)+' free</span>'
+    : '<span class="pill over">'+fmt(-a.unalloc)+' over</span>';
+  html+='<tr class="totalrow"><td>Total</td><td>100%</td><td>'+fmt(a.income)+'</td><td>'+fmt(a.allocated)+'</td><td>'+unallocPill+'</td></tr>';
+  html+='</tbody>';
+  document.getElementById("analysisTable").innerHTML=html;
+}
+
+/* pockets grouped by category */
+function renderPockets(a){
+  const wrap=document.getElementById("pocketsWrap"); wrap.innerHTML="";
+  const inc=a.income||1;
+  CAT_ORDER.forEach(k=>{
+    const list=(data.pockets||[]).filter(p=>p.cat===k);
+    const g=document.createElement("div"); g.className="pgroup";
+    const head=document.createElement("div"); head.className="pgrouphead";
+    head.innerHTML='<span class="gname"><span class="catdot" style="background:'+CATS[k].hex+'"></span>'+
+        CATS[k].name+' &middot; '+CATS[k].ratio+'%</span>'+
+        '<span class="gsum">'+fmt(a.cats[k].alloc)+' / '+fmt(a.cats[k].target)+' RON</span>';
+    g.appendChild(head);
+    if(!list.length){ const e=document.createElement("div");e.className="hint";e.style.padding="0 4px 8px";e.textContent="No pockets.";g.appendChild(e);}
+    list.forEach(p=>{
+      const row=document.createElement("div"); row.className="pocket"+(p.active?"":" off");
+      const pct=p.active&&inc?((Number(p.amount)||0)/inc*100):0;
+      row.innerHTML=
+        '<div class="switch '+(p.active?"on":"")+'" title="Active / paused"></div>'+
+        '<div class="pcol2"><span class="pname ed" contenteditable="true" spellcheck="false"></span>'+
+          '<div class="pnotes ed" contenteditable="true" spellcheck="false" data-ph="Add a note"></div></div>'+
+        '<select class="cat">'+CAT_ORDER.map(c=>'<option value="'+c+'"'+(c===p.cat?" selected":"")+'>'+CATS[c].name+'</option>').join("")+'</select>'+
+        '<input type="number" class="num" value="'+(p.amount==null?"":p.amount)+'"/>'+
+        '<span class="ppct">'+(p.active?pct.toFixed(2)+"%":"&mdash;")+'</span>'+
+        '<button class="del">&times;</button>';
+      row.querySelector(".pname").textContent=p.name;
+      const notesEl=row.querySelector(".pnotes"); notesEl.textContent=p.notes||"";
+      row.querySelector(".switch").onclick=()=>{p.active=!p.active;persist();renderDash();};
+      row.querySelector(".pname").onblur=(e)=>{p.name=e.target.textContent.trim();persist();};
+      row.querySelector("select").onchange=(e)=>{p.cat=e.target.value;persist();renderDash();};
+      row.querySelector("input").onchange=(e)=>{p.amount=e.target.value===""?0:Number(e.target.value);persist();renderDash();};
+      notesEl.onblur=(e)=>{p.notes=e.target.textContent.trim();persist();};
+      row.querySelector(".del").onclick=()=>{ if(confirm('Delete pocket "'+p.name+'"?')){data.pockets=data.pockets.filter(x=>x!==p);persist();renderDash();} };
+      g.appendChild(row);
+    });
+    wrap.appendChild(g);
+  });
+}
+function addPocket(){ data.pockets.push({id:uid(),name:"New pocket",cat:"needs",amount:0,active:true,notes:""});
+  persist();renderDash();
+  const rows=document.querySelectorAll("#pocketsWrap .pocket .pname");
+  if(rows.length){const last=rows[0];} toast("Pocket added"); }
+
+/* budget chart: target vs allocated per category */
+function renderBudgetChart(a){
+  if(document.getElementById("chartBox").classList.contains("hidden")) return;
+  const ctx=document.getElementById("budgetChart");
+  const labels=CAT_ORDER.map(k=>CATS[k].name+" ("+CATS[k].ratio+"%)");
+  const targets=CAT_ORDER.map(k=>a.cats[k].target);
+  const allocs=CAT_ORDER.map(k=>a.cats[k].alloc);
+  if(budgetChart) budgetChart.destroy();
+  budgetChart=new Chart(ctx,{type:"bar",
+    data:{labels:labels,datasets:[
+      {label:"Target",data:targets,backgroundColor:"#d8dEf0",borderRadius:6,maxBarThickness:40},
+      {label:"Allocated",data:allocs,backgroundColor:CAT_ORDER.map(k=>CATS[k].hex),borderRadius:6,maxBarThickness:40}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}}},
+      plugins:{legend:{position:"top"},tooltip:{callbacks:{label:c=>c.dataset.label+": "+fmt(c.parsed.y)+" RON"}}}}});
+}
+
+/* =================== view switch =================== */
+function setView(v){
+  view=v;
+  ["month","dash","rent","benefits"].forEach(k=>{
+    document.getElementById("view-"+k).classList.toggle("hidden",v!==k);
+    document.getElementById("tab-"+k).classList.toggle("active",v===k);
+  });
+  if(v==="dash") renderDash();
+  else if(v==="rent") renderRent();
+  else if(v==="benefits") renderBenefits();
+  else render();
+}
+
+/* =================== file storage (auto-save to a JSON file) =================== */
+const FSA=false;
+let linkedActive=false;
+async function readFromFile(){
+  const f=await fileHandle.getFile(); const txt=await f.text();
+  if(!txt.trim()) return false;
+  const obj=JSON.parse(txt);
+  if(!obj || !obj.months) return false;
+  data=migrate(obj); return true;
+}
+async function writeToFile(){
+  if(!fileHandle || !linkedActive) return;
+  try{ const w=await fileHandle.createWritable(); await w.write(JSON.stringify(data,null,2)); await w.close(); }
+  catch(e){ linkedActive=false; updateLinkUI(); }
+}
+async function linkFile(){
+  if(!FSA){ toast("Open this file in Chrome or Edge to save to a JSON file"); return; }
+  try{
+    fileHandle=await window.showSaveFilePicker({suggestedName:"salary-manager-data.json",
+      types:[{description:"JSON",accept:{"application/json":[".json"]}}]});
+    await idbSet("handle",fileHandle);
+    linkedActive=true;
+    let loaded=false; try{ loaded=await readFromFile(); }catch(e){}
+    if(loaded){ render(); toast("Loaded data from file - auto-saving"); }
+    else{ await writeToFile(); toast("Auto-saving to your file from now on"); }
+    updateLinkUI(); if(view==="dash")renderDash(); else if(view==="benefits")renderBenefits();
+  }catch(e){}
+}
+async function reconnectFile(){
+  if(!fileHandle) return linkFile();
+  if(!FSA){ toast("Open in Chrome or Edge"); return; }
+  try{
+    const p=await fileHandle.requestPermission({mode:"readwrite"});
+    if(p!=="granted"){ toast("Permission needed to use the file"); return; }
+    linkedActive=true;
+    try{ if(await readFromFile()) render(); }catch(e){}
+    updateLinkUI(); if(view==="dash")renderDash();
+    toast("Reconnected - auto-saving to your file");
+  }catch(e){ toast("Could not open the file"); }
+}
+function storageAction(){ if(fileHandle && !linkedActive) return reconnectFile(); return linkFile(); }
+function updateLinkUI(){
+  const name=(fileHandle&&fileHandle.name)||"your file";
+  document.getElementById("linkDot").classList.toggle("linked",linkedActive);
+  const t=document.getElementById("linkText"), s=document.getElementById("linkSub"), b=document.getElementById("linkBtn");
+  if(!FSA){
+    t.textContent="Saved to Home Assistant";
+    s.textContent="Stored on Home Assistant and shared across all your devices.";
+    b.classList.add("hidden"); return;
+  }
+  b.classList.remove("hidden");
+  if(linkedActive){
+    t.textContent="Saving to "+name;
+    s.textContent="Auto-saved to your file on every change - move or back it up anytime.";
+    b.textContent="Change file";
+  } else if(fileHandle){
+    t.textContent="Data file ready: "+name;
+    s.textContent="Click to reconnect and continue auto-saving (the browser asks once per session).";
+    b.textContent="Reconnect & load";
+  } else {
+    t.textContent="Choose where to save your data";
+    s.textContent="Pick a JSON file once - the app then saves to it automatically on every change.";
+    b.textContent="Choose data file";
+  }
+}
+function idbSet(k,v){return new Promise((res,rej)=>{const o=indexedDB.open("sm",1);
+  o.onupgradeneeded=()=>o.result.createObjectStore("kv");
+  o.onsuccess=()=>{const t=o.result.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=res;t.onerror=rej;};o.onerror=rej;});}
+function idbGet(k){return new Promise((res)=>{const o=indexedDB.open("sm",1);
+  o.onupgradeneeded=()=>o.result.createObjectStore("kv");
+  o.onsuccess=()=>{const t=o.result.transaction("kv","readonly");const r=t.objectStore("kv").get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);};o.onerror=()=>res(null);});}
+function showReconnectModal(){
+  if(!FSA) return;
+  const el=document.getElementById("reconnectModal"); if(!el) return;
+  const btn=document.getElementById("reconnectBtn"), msg=document.getElementById("reconnectMsg");
+  if(fileHandle){ btn.textContent="Reconnect & load"; msg.textContent="Your data is saved in “"+fileHandle.name+"”. Reconnect so your changes save to it."; }
+  else { btn.textContent="Choose data file"; msg.textContent="Pick your JSON data file so the app can load and save your data."; }
+  el.classList.remove("hidden");
+}
+function hideReconnectModal(){ const el=document.getElementById("reconnectModal"); if(el) el.classList.add("hidden"); }
+async function reconnectFromModal(){
+  if(fileHandle){ await reconnectFile(); } else { await linkFile(); }
+  if(linkedActive) hideReconnectModal();
+}
+async function tryRelink(){ if(!FSA)return; try{const h=await idbGet("handle"); if(h){ fileHandle=h;
+    let p="prompt"; try{ p=await h.queryPermission({mode:"readwrite"}); }catch(e){}
+    if(p==="granted"){ linkedActive=true; try{ if(await readFromFile()) render(); }catch(e){} }
+    updateLinkUI(); if(view==="dash")renderDash();
+  } }catch(e){}
+  if(!linkedActive) showReconnectModal();
+}
+
+let toastT;
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2200);}
+
+/* =================== RENT & BILLS =================== */
+const ROMONTHS=["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
+function round2(n){ return Math.round((Number(n)||0)*100)/100; }
+function fmt2(n){ return (Number(n)||0).toLocaleString("en-US",{maximumFractionDigits:2}); }
+function seedRent(){
+  const R=(name,paid)=>({name:name,paid:paid});
+  const B=(name,amount,split)=>({name:name,amount:amount,split:split,paid:true});
+  const M=(name,rent,renters,bills)=>({id:uid(),name:name,year:2026,rent:rent,renters:renters,bills:bills});
+  return { months:[
+    M("Ianuarie",2000,[R("Louise",1525),R("Andreea",1486)],[B("Asociatie",124.97,true),B("Gas+Energy",847.72,true),B("Repair tax",31.54,false)]),
+    M("Februarie",2000,[R("Louise",1442),R("Andreea",1443)],[B("Asociatie",220.2,true),B("Gas+Energy",665.53,true),B("Repair tax",31.54,false)]),
+    M("Martie",2000,[R("Louise",1367),R("Andreea",1367)],[B("Asociatie",226.58,true),B("Gas+Energy",508.56,true),B("Repair tax",31.54,false)]),
+    M("Aprilie",2000,[R("Louise",1000),R("Andreea",1000)],[B("Asociatie",182.56,true),B("Gas+Energy",357.84,true),B("Repair tax",31.54,false)]),
+    M("Mai",2000,[R("Louise",1000),R("Andreea",1000)],defaultBills()),
+    M("Iunie",2000,[R("Andreea",0)],defaultBills())
+  ]};
+}
+function computeRent(m){
+  const n=Math.max(1,(m.renters||[]).length);
+  const split=(m.bills||[]).filter(b=>b.split).reduce((s,b)=>s+(Number(b.amount)||0),0);
+  const due=Math.floor(((Number(m.rent)||0)+split)/n);
+  const rows=(m.renters||[]).map(r=>{ const raw=Math.max(0,due-(Number(r.paid)||0)); return {r:r,due:due,raw:raw,rem:Math.round(raw),paid:raw<0.5}; });
+  const outstanding=rows.reduce((s,x)=>s+x.raw,0);
+  return {n:n,split:split,due:due,rows:rows,outstanding:outstanding,outDisp:Math.round(outstanding),allPaid:rows.every(x=>x.paid)};
+}
+function renderRent(){
+  ensureRentMonths();
+  const list=document.getElementById("rentList"); list.innerHTML="";
+  let totalOut=0, totalExtra=0;
+  (data.rent.months||[]).forEach(m=>{ totalOut+=computeRent(m).outstanding;
+    totalExtra+=(m.bills||[]).filter(b=>!b.split).reduce((s,b)=>s+(Number(b.amount)||0),0); });
+  document.getElementById("rentSummary").innerHTML="Across "+(data.rent.months||[]).length+" months &middot; outstanding <b>"+fmt2(round2(totalOut))+" RON</b> &middot; your own (non-split) costs <b>"+fmt2(round2(totalExtra))+" RON</b>";
+  const display=(data.rent.months||[]).slice().sort((a,b)=>monthKey(b)-monthKey(a));
+  display.forEach((m)=>{
+    const c=computeRent(m);
+    const card=document.createElement("div"); card.className="card pad rentmonth";
+    const bills=(m.bills||[]).map((b,bi)=>
+      '<div class="billrow" data-bi="'+bi+'">'+
+        '<input class="tx bname" value="'+esc(b.name)+'">'+
+        '<input class="num bamt" type="number" value="'+(b.amount==null?"":b.amount)+'"><span class="hint">RON</span>'+
+        '<label class="tg"><span class="switch '+(b.split?"on":"")+' bsplit"></span>'+(b.split?"Renters pay":"I pay")+'</label>'+
+        '<label class="tg"><span class="switch '+(b.paid?"on":"")+' bpaid"></span>paid</label>'+
+        '<button class="del bdel">&times;</button>'+
+      '</div>').join("");
+    const renters=c.rows.map((x,ri)=>
+      '<div class="renterrow" data-ri="'+ri+'">'+
+        '<input class="tx rname" value="'+esc(x.r.name)+'">'+
+        '<input class="num rpaid" type="number" value="'+(x.r.paid==null?"":x.r.paid)+'">'+
+        '<span class="hint">paid</span>'+
+        '<span class="hint">due '+fmt2(x.due)+'</span>'+
+        '<span class="remain '+(x.paid?"ok":"bad")+'">'+(x.paid?"paid":fmt2(x.rem)+" left")+'</span>'+
+      '</div>').join("");
+    card.innerHTML=
+      '<div class="rm-head"><div class="rm-title">'+esc(m.name)+' <span class="rm-year">'+(m.year||"")+'</span></div>'+
+        '<div style="display:flex;align-items:center;gap:10px">'+
+        '<span class="rm-status '+(c.allPaid?"ok":"bad")+'">'+(c.allPaid?"All paid":fmt2(c.outDisp)+" RON left")+'</span>'+
+        '<button class="del rm-del" title="Delete month">&times;</button></div></div>'+
+      '<div class="rm-cfg"><span>Renters</span>'+
+        '<input class="num rm-n" type="number" min="1" style="width:60px" value="'+c.n+'">'+
+        '<label class="tg" style="gap:6px"><b>Monthly rent</b><input class="num rm-rent" type="number" value="'+(m.rent==null?"":m.rent)+'"></label><span>RON</span>'+
+        '<span>&rarr; <b>'+fmt2(c.due)+'</b> per renter</span></div>'+
+      '<div class="rlabel">Bills <span class="hint" style="font-weight:400">("Renters pay" splits it among renters; "I pay" is your own cost)</span></div>'+
+      '<div class="rm-bills">'+bills+'</div>'+
+      '<button class="btn subtle rm-addbill">+ Add bill</button>'+
+      '<div class="rlabel" style="margin-top:14px">Who paid</div>'+
+      '<div class="rm-renters">'+renters+'</div>';
+    card.querySelector(".rm-del").onclick=()=>{ if(confirm("Delete "+m.name+"?")){ const ix=data.rent.months.indexOf(m); if(ix>=0) data.rent.months.splice(ix,1); persist(); renderRent(); } };
+    card.querySelector(".rm-n").onchange=(e)=>{ const t=Math.max(1,parseInt(e.target.value)||1); const a=m.renters||(m.renters=[]);
+      while(a.length<t) a.push({name:"Renter "+(a.length+1),paid:0}); while(a.length>t) a.pop(); persist(); renderRent(); };
+    card.querySelector(".rm-rent").onchange=(e)=>{ m.rent=e.target.value===""?0:Number(e.target.value); persist(); renderRent(); };
+    card.querySelector(".rm-addbill").onclick=()=>{ (m.bills||(m.bills=[])).push({name:"New bill",amount:0,split:true,paid:false}); persist(); renderRent(); };
+    card.querySelectorAll(".billrow").forEach(row=>{ const bi=+row.dataset.bi; const b=m.bills[bi];
+      row.querySelector(".bname").onchange=(e)=>{ b.name=e.target.value.trim(); persist(); };
+      row.querySelector(".bamt").onchange=(e)=>{ b.amount=e.target.value===""?0:Number(e.target.value); persist(); renderRent(); };
+      row.querySelector(".bsplit").onclick=()=>{ b.split=!b.split; persist(); renderRent(); };
+      row.querySelector(".bpaid").onclick=()=>{ const nv=!b.paid; b.paid=nv;
+        if(b.name==="Asociatie"||b.name==="Repair tax"){ const other=(b.name==="Asociatie")?"Repair tax":"Asociatie"; const ob=(m.bills||[]).find(x=>x.name===other); if(ob) ob.paid=nv; }
+        persist(); renderRent(); };
+      row.querySelector(".bdel").onclick=()=>{ m.bills.splice(bi,1); persist(); renderRent(); };
+    });
+    card.querySelectorAll(".renterrow").forEach(row=>{ const ri=+row.dataset.ri; const r=m.renters[ri];
+      row.querySelector(".rname").onchange=(e)=>{ r.name=e.target.value.trim(); persist(); };
+      row.querySelector(".rpaid").onchange=(e)=>{ r.paid=e.target.value===""?0:Number(e.target.value); persist(); renderRent(); };
+    });
+    list.appendChild(card);
+  });
+}
+function monthKey(m){ return (m.year||0)*100 + ROMONTHS.indexOf(m.name); }
+function defaultBills(){ return [
+  {name:"Asociatie", amount:0, split:true,  paid:false},
+  {name:"Gas+Energy", amount:0, split:true,  paid:false},
+  {name:"Repair tax", amount:0, split:false, paid:false}
+]; }
+function ensureRentMonths(){
+  const ms=data.rent.months; if(!ms || !ms.length) return;
+  let latest=ms[0]; ms.forEach(m=>{ if(monthKey(m)>monthKey(latest)) latest=m; });
+  const now=new Date(); const target=now.getFullYear()*100+now.getMonth();
+  let li=ROMONTHS.indexOf(latest.name), ly=latest.year||now.getFullYear();
+  let renters=(latest.renters||[]).map(r=>({name:r.name})), rent=latest.rent, changed=false;
+  while((ly*100+li) < target){
+    li++; if(li>11){ li=0; ly++; }
+    ms.push({id:uid(), name:ROMONTHS[li], year:ly, rent:rent,
+      renters:renters.map(r=>({name:r.name,paid:0})), bills:defaultBills()});
+    changed=true;
+  }
+  if(changed) persist();
+}
+
+/* =================== BENEFITS (reference data from the sheet) =================== */
+const BENEFITS={
+ cec:[
+  ["Airport Lounge Access - Romania (Otopeni)","Card (present at lounge)","Free, unlimited access for cardholder + up to 3 guests; min. 300 RON transactions in last 30 days (up to 96h before visit)"],
+  ["Airport Lounge Access - International (LoungeKey)","LoungeKey app","12 free visits/year to 1,400+ international Business Lounges; register card in LoungeKey app, show QR code at entry"],
+  ["VIP Protocol - Henri Coanda Airport","0747 410 002 / office@visaconcierge.ro","2x/year; diplomatic lane, VIP lounge access, limousine transfer to aircraft & priority boarding; reserve 48h in advance"],
+  ["Airport Transfer (Limousine)","0747 410 002 / office@visaconcierge.ro","2 free transfers/year; cardholder + 1 companion; sedan premium car; 12 cities incl. Bucharest, Timisoara, Cluj, Iasi, Constanta, Brasov, Sibiu, Galati, Bacau, Suceava, Craiova, Arad"],
+  ["Concierge Service 24/7","0747 410 002 / office@visaconcierge.ro","Unlimited requests/year; Lifestyle & Wellness, Home & Family, Tourism & Events, Medical Concierge; consultation free, products/services paid separately"],
+  ["Travel & Medical Insurance","Automatic (card-linked)","Comprehensive: medical expenses, trip cancellation, baggage delay/loss, lost/stolen documents; covers cardholder and family"],
+  ["Flight Delay Compensation","Air Refund service","Compensation for eligible flight delays via Air Refund service"],
+  ["Cashback","Automatic (monthly)","0.5% cashback on commercial transactions; max 600 RON/month; credited last working day of the month; excludes transfers/top-ups/gambling"],
+  ["Visa Luxury Hotels Collection","visa.ro / Visa portal","Access to exclusive hotel offers and perks at luxury hotel properties worldwide"],
+  ["Visa Infinite Experiences","visa.ro","Exclusive offers and campaigns for shopping, restaurants, entertainment, art, and travel for Visa Infinite cardholders"]
+ ],
+ visaPriv:[
+  ["National - VIP Experiences","Airport Limousine Transfer","2 free trips/year (cardholder + 1 companion); 12 cities; standard tariff after quota","0747 410 002 / office@visaconcierge.ro (book in advance)"],
+  ["National - VIP Experiences","VIP Protocol - Henri Coanda Airport","2 free times/year; diplomatic flow access, escort to/from Protocol Lounge, VIP ground transport to aircraft; 1 companion; at cost after limit","0747 410 002 / office@visaconcierge.ro (book 48h ahead)"],
+  ["National - Concierge","Concierge 24/7 Infinite","Unlimited requests; medical consultations, event organization, interior design, restaurant reservations, lifestyle & wellness, tourism, home & family; consultation free","0747 410 002 / office@visaconcierge.ro (Mon-Fri 9-18 + 24/7 urgent)"],
+  ["National - Transport","BlackCab Premium Transport","20% discount on BlackCab rides; Bucharest, Constanta, Timisoara, Iasi, Cluj, Brasov, Sibiu","BlackCab app/website; Visa Gold, Platinum, Signature & Infinite"],
+  ["National - Lounge","Airport Business Lounge Romania","Free unlimited access for cardholder + up to 3 guests at Bucharest (Otopeni), Cluj, Timisoara; min. 300 RON transactions in last 30 days","Present card at lounge entrance"],
+  ["National - Home","Home Concierge Services","20% discount on home assistance (electrical, plumbing, HVAC, ironmongery); 300 professionals nationwide; Mon-Fri 9-18","home@consiergo.ro / Consiergo app"],
+  ["National - Road Assistance","FaraGrija Premium Road Assistance","Free FaraGrija Premium package for Visa Infinite & Signature; activate before incident; valid 1 year","car@consiergo.ro / 0747 410 002 / faragrija.ro / Consiergo app"],
+  ["International - Hotels","Visa Luxury Hotels Collection","See the Luxury Hotels perks below for full details","myvisaluxuryhotels.com"],
+  ["International - Flights","Air Refund","Flight delay/cancellation compensation support; recover money for delayed or cancelled flights","air-refund.com (via visa.ro)"]
+ ],
+ visaHotels:[
+  ["Best rate guaranteed","Lowest available rate guaranteed at time of booking"],
+  ["Room upgrade","Automatic upgrade to a better room upon arrival, if available"],
+  ["Continental breakfast","Included daily for the cardholder (and in some properties, 1 companion)"],
+  ["Early check-in","Early check-in upon request, subject to availability"],
+  ["Late check-out","Check-out at 3 PM upon request, if available"],
+  ["Food & beverage credit","$25 USD credit per stay for food or drinks"],
+  ["VIP guest status","Recognition as VIP guest at participating hotels"],
+  ["Portfolio","Includes brands like Peninsula, Park Hyatt, Shangri-La and other world-renowned luxury/boutique hotels"],
+  ["How to book","Book via myvisaluxuryhotels.com using Visa Gold, Platinum, Signature or Infinite; benefits per stay, not per night"]
+ ],
+ visaOffers:[
+  ["Accommodation - Romania","Ana Hotels (Europa Eforie Nord, Bradul & Sport Poiana Brasov)","10% discount on accommodation","Visa Gold, Platinum, Infinite, Signature"],
+  ["Accommodation - Romania","Hotelul Iaki Mamaia","15% discount on accommodation","Visa Gold, Platinum, Infinite, Signature"],
+  ["Accommodation - Romania","Boutique Villa The Pines Brasov","Free upgrade or up to 15% discount","Visa Gold, Platinum, Infinite, Signature"],
+  ["Accommodation - Romania","Kronwell Brasov Hotel","Discount on accommodation","Visa Premium cards"],
+  ["Accommodation - Romania","DoubleTree by Hilton Cluj - City Plaza","Discount on accommodation","Visa Premium cards"],
+  ["Accommodation - Romania","Crowne Plaza Constanta - Mamaia Beach","Discount on accommodation","Visa Premium cards"],
+  ["Accommodation - Romania","Hilton Sibiu","Discount on accommodation","Visa Premium cards"],
+  ["Accommodation - Romania","MATCA","Discount on accommodation","Visa Premium cards"],
+  ["Accommodation - Romania","Vienna House Easy by Wyndham Airport Bucharest","Discount on accommodation","Visa Premium cards"],
+  ["Travel","Airalo","15% discount on all eSIMs worldwide","Visa Gold, Platinum, Infinite, Classic, Business"],
+  ["Transport","Viggo","Up to 15% discount on products","Visa Gold, Platinum, Infinite, Signature"],
+  ["Dining","Gargantua","10% discount + complimentary digestive","Visa Gold, Platinum, Infinite, Business, Platinum Business, Infinite Business"],
+  ["Dining","Hard Rock Cafe Bucharest","10% discount at Cafe & Rock Shop","Visa Infinite"],
+  ["Dining","Madre","Discount at restaurant","Visa Gold, Platinum, Infinite, Signature"],
+  ["Dining","Zexe Blanc","Discount at restaurant","Visa Infinite"],
+  ["Dining - Visa Infinite only","JORJ Restaurant","Exclusive offer for Visa Infinite","Visa Infinite only"],
+  ["Dining - Visa Infinite only","The English Bar","Exclusive offer for Visa Infinite","Visa Infinite only"],
+  ["Dining - Visa Infinite only","Churchill Club","Exclusive offer for Visa Infinite","Visa Infinite only"],
+  ["Dining - Visa Infinite only","Gastrolab Victoriei","Exclusive offer for Visa Infinite","Visa Infinite only"],
+  ["Dining - Visa Infinite only","Isoletta","Exclusive offer for Visa Infinite","Visa Infinite only"],
+  ["Dining","Nadasan","Discount at restaurant","Visa Gold, Platinum, Infinite, Business"],
+  ["Dining","Sidharta","Discount at restaurant","Visa Gold, Platinum, Infinite"],
+  ["Dining","Restaurant L'Atelier","Discount at restaurant","Visa Gold, Platinum, Infinite"],
+  ["Retail","Libris.ro","Up to 20% discount on books","Visa Premium cards"],
+  ["Retail","CELLINI","Discount at jewellery stores (Faberge, Casato, Breitling, Hublot, Omega, TAG Heuer etc.)","Visa Gold, Platinum, Infinite, Signature"],
+  ["Retail","Azay","Discount at gift shop","Visa Gold, Platinum, Infinite, Signature"],
+  ["Retail","Ginissima","Discount on shoes","Visa Gold, Platinum, Infinite"],
+  ["Health & Beauty","DENT ESTET","Dental services discount","Visa Infinite only"],
+  ["Health & Beauty","Country Spa Retreat","Spa services discount","Visa Infinite only"],
+  ["Health & Beauty","The Elements - Luxury Boutique Spa","Spa retreat services discount","Visa Premium cards"],
+  ["Health & Beauty","Muse Estet Clinic","Regenerative medicine & aesthetics","Visa Premium cards"],
+  ["Health & Beauty","SwissMed Clinic","Regenerative medicine & sports recovery","Visa Premium cards"],
+  ["Health & Beauty","Expand Labs","Longevity & biohacking hub","Visa Premium cards"],
+  ["Health & Beauty","Longevity Clinic","Preventative health solutions","Visa Premium cards"],
+  ["Services","Medivita","Concierge medical assistance","Visa Premium cards"],
+  ["Services","Academia Titi Aur","Auto driving experiences & courses","Visa Premium cards"],
+  ["Services","Autonom Drive","Premium private airport transport","Visa Premium cards"],
+  ["Services","Bucharest Golf Club","Golfing facilities discount","Visa Premium cards"],
+  ["Events","Bilete.ro","Discount on event tickets","Visa Premium cards"],
+  ["Events","Zooma Events / Muse Country Club","Event venue discount","Visa Premium cards"]
+ ],
+ bazar:[
+  ["Alimente","LifeBox","Cashback","Health food & supplements online"],
+  ["Alimente","Shopitaly","Cashback","Italian food products online"],
+  ["Alimente","Arta Ceaiului","Cashback","Tea and wellness products"],
+  ["Alimente","e-Kafea / Kafea","Cashback","Coffee products online"],
+  ["Alimente","Zooplus","Cashback","Pet food and accessories"],
+  ["Alimente","K-Tea","Cashback","Tea products"],
+  ["Alimente","MyProtein","Cashback","Sports nutrition and supplements"],
+  ["Alimente","Premium Chocolate (Bonn Chocolat)","Cashback","Premium chocolate and confectionery"],
+  ["Alimente","Mega Image","Cashback","Supermarket chain (in-store and online)"],
+  ["Alimente","PetMart","Cashback","Pet food and accessories"],
+  ["Alimente","PetMax / Animax","Cashback","Pet food and accessories"],
+  ["Alimente","Vegis","Cashback","Organic and vegan food online"],
+  ["Alimente","Auchan","3% cashback (*)","Supermarket (purchases over 100 RON)"],
+  ["Stil","Il Passo","Cashback","Shoes"],
+  ["Stil","Picadili","Cashback","Clothing"],
+  ["Stil","GlamoShop","Cashback","Fashion and accessories online"],
+  ["Stil","RapCity","Cashback","Street fashion"],
+  ["Stil","Tinar","Cashback","Clothing"],
+  ["Stil","Tezyo","Cashback","Fashion online"],
+  ["Stil","UniqueStore","Cashback","Fashion online"],
+  ["Stil","Amazon.de","3-8% cashback (*)","8% Fashion; 5% Beauty/bijuterii/casa/muzica; 4% Carti/sport/ingrijire personala; 3% Electronice/telefoane/jucarii - exclusive ING Bazar offer"],
+  ["Stil","Puma","Cashback","Sports fashion and footwear"],
+  ["Stil","Moogu","Cashback","Fashion"],
+  ["Stil","Teilor","Cashback","Jewellery"],
+  ["Stil","Benvenuti","Cashback","Shoes and accessories"],
+  ["Stil","Sizeer","Cashback","Sneakers and streetwear"],
+  ["Stil","CCC","Cashback","Shoes"],
+  ["Stil","Cupio","Cashback","Cosmetics and beauty accessories"],
+  ["Stil","Queens","Cashback","Fashion"],
+  ["Stil","Beneva","Cashback","Fashion"],
+  ["Stil","Gryxx","Cashback","Shoes"],
+  ["Stil","Zappatos","Cashback","Shoes online"],
+  ["Stil","Sosetaria.ro","Cashback","Socks and hosiery online"],
+  ["Stil","dEpurtat.ro","Cashback","Fashion for kids and adults"],
+  ["Stil","Sinsay","Cashback","Affordable fashion (LPP group)"],
+  ["Stil","Reserved","Cashback","Fashion (LPP group)"],
+  ["Stil","House Iunie","Cashback","Clothing brand"],
+  ["Stil","Footshop.ro","Cashback","Sneakers"],
+  ["Stil","Otter","Cashback","Fashion accessories"],
+  ["Stil","BestValue","Cashback","Fashion and accessories"],
+  ["Stil","Lensa","Cashback","Contact lenses and eyewear online"],
+  ["Stil","Answear","Cashback","Multibrand fashion online"],
+  ["Stil","StarGift","Cashback","Gifts and accessories"],
+  ["Stil","Aldo","Cashback","Shoes and accessories"],
+  ["Stil","Hervis Sports","5% cashback (*)","Sports clothing, footwear and equipment"],
+  ["Stil","Fashion Days","Cashback","Fashion online marketplace"],
+  ["Stil","Douglas","Cashback","Perfumes and beauty"],
+  ["Sanatate","Farmacia Dona","Cashback","Pharmacy chain (in-store)"],
+  ["Sanatate","Eumed","Cashback","Online pharmacy"],
+  ["Sanatate","Napofarm","Cashback","Online pharmacy"],
+  ["Sanatate","Eyerim","Cashback","Eyeglasses and contact lenses online"],
+  ["Sanatate","Dental Elite","Cashback","Dental clinic"],
+  ["Sanatate","Secom","Cashback","Health supplements and natural products"],
+  ["Sanatate","ESX","Cashback","Health and fitness supplements"],
+  ["Sanatate","Beneva","Cashback","Health and wellness"],
+  ["Sanatate","Springfarma","Cashback","Online pharmacy"],
+  ["Sanatate","Vegis","Cashback","Organic and vegan products"],
+  ["Sanatate","Republicabio.ro","Cashback","Organic products"],
+  ["Sanatate","Optiplaza","Cashback","Optical chain"],
+  ["Sanatate","Optiblu","Cashback","Optical chain"],
+  ["Sanatate","Dr. Max","Cashback","Pharmacy chain"],
+  ["Electronice","Xiaomi","Cashback","Electronics and gadgets"],
+  ["Electronice","Tefal","Cashback","Kitchen appliances"],
+  ["Electronice","Rovision","Cashback","Electronics"],
+  ["Electronice","Amazon.de","3% cashback (*)","Electronics/phones/toys category"],
+  ["Electronice","Rowenta","Cashback","Household appliances"],
+  ["Electronice","Electrolux","Cashback","Household appliances"],
+  ["Electronice","Black Tech","Cashback","Electronics"],
+  ["Electronice","iStyle","Cashback","Apple premium reseller"],
+  ["Electronice","Philips","Cashback","Electronics and appliances"],
+  ["Electronice","Dyson","Cashback","Premium household appliances"],
+  ["Electronice","Flip","Cashback","Refurbished electronics"],
+  ["Sport","Hervis Sports","5% cashback (*)","Sports equipment, clothing and footwear"],
+  ["Sport","Goldnutrition","Cashback","Sports nutrition supplements"],
+  ["Sport","ProKarpFishing","Cashback","Fishing equipment"],
+  ["Sport","Amazon.de","4% cashback (*)","Sport & outdoor category"],
+  ["Sport","MyProtein","Cashback","Sports nutrition"],
+  ["Sport","Under Armour","Cashback","Sports clothing and footwear"],
+  ["Sport","Sport Depot","Cashback","Sports equipment and clothing"],
+  ["Sport","ESX","Cashback","Fitness supplements"],
+  ["Sport","Kettler","Cashback","Fitness equipment"],
+  ["Casa","XXXLutz","Cashback","Furniture and home decor"],
+  ["Casa","Agroland","Cashback","Garden, agriculture and home"],
+  ["Casa","Maxtools","Cashback","Tools and DIY"],
+  ["Casa","Zergo","Cashback","Home and office furniture"],
+  ["Casa","Homs.ro","Cashback","Home furniture and decor"],
+  ["Casa","Bagno","Cashback","Bathroom accessories"],
+  ["Casa","Haaus","Cashback","Home decor online"],
+  ["Casa","Tefal","Cashback","Kitchen appliances"],
+  ["Casa","Amazon.de","5% cashback (*)","Home/DIY/furniture category"],
+  ["Casa","Aosom","Cashback","Outdoor and home furniture"],
+  ["Casa","Somnart","Cashback","Bedding and sleep products"],
+  ["Casa","Mezoni","Cashback","Furniture"],
+  ["Casa","Electrolux","Cashback","Household appliances"],
+  ["Casa","Chilipirul-zilei.ro","Cashback","Deals and discounts marketplace"],
+  ["Timp Liber","Carturesti","4-15% cashback (*)","Bookstore chain (4% per older reports; up to 15% per other sources)"],
+  ["Timp Liber","Skyscanner","Cashback","Flight comparison and booking"],
+  ["Timp Liber","Trip.com","Cashback","Travel booking"],
+  ["Timp Liber","Stubhub","Cashback","Event tickets"],
+  ["Timp Liber","Lucky2go","Cashback","Last-minute travel deals"],
+  ["Timp Liber","Agoda","Cashback","Hotel booking"],
+  ["Timp Liber","GetYourGuide","Cashback","Activities and tours booking"],
+  ["Timp Liber","DERTOUR","Cashback","Travel agency"],
+  ["Timp Liber","Redgoblin","Cashback","Gaming and pop culture merchandise"],
+  ["Timp Liber","DACRIS","Cashback","Office supplies and gifts"],
+  ["Timp Liber","City Flowers","Cashback","Flower delivery"],
+  ["Timp Liber","CREATIV","Cashback","Art and craft supplies"],
+  ["Timp Liber","Craftup","Cashback","Craft supplies"],
+  ["Timp Liber","Esky","Cashback","Flight booking"],
+  ["Timp Liber","Perfect Tour","Cashback","Travel agency"],
+  ["Timp Liber","SKYSHOWTIME","Cashback","Streaming platform subscription"],
+  ["Timp Liber","Sightseeing Pass","Cashback","City tourism passes"],
+  ["Timp Liber","Rentalcars","Cashback","Car rental comparison"],
+  ["Timp Liber","Paris City Vision","Cashback","Paris tours and activities"],
+  ["Timp Liber","Blue","Cashback","Travel / mobility"],
+  ["Timp Liber","MagicalShuttle","Cashback","Airport transfers"],
+  ["Timp Liber","Libris","20% cashback (*)","Books and e-books online"],
+  ["Timp Liber","BookZone","Cashback","Books online"],
+  ["Timp Liber","Librex","Cashback","Books online"],
+  ["Timp Liber","Nemira","Cashback","Publishing house"],
+  ["Timp Liber","YOXO","Cashback","eSIM for travel"],
+  ["Timp Liber","Litera.ro","Cashback","Publishing house"],
+  ["Timp Liber","Fundatia Calea Victoriei","Cashback","Cultural foundation events"],
+  ["Timp Liber","Autonom","Cashback","Car rental"],
+  ["Timp Liber","Autonom Rent","Cashback","Car rental"],
+  ["Timp Liber","Humanitas","Cashback","Books and cultural events"],
+  ["Timp Liber","Happy Tour","Cashback","Travel agency"],
+  ["Frumusete","BestValue","Cashback","Beauty and accessories"],
+  ["Frumusete","Liki24","Cashback","Online pharmacy / beauty"],
+  ["Frumusete","Marionnaud","Cashback","Perfumes and cosmetics"],
+  ["Frumusete","Charlotte Tilbury","Cashback","Luxury makeup and skincare"],
+  ["Frumusete","O51","Cashback","Perfumes and beauty"],
+  ["Frumusete","Cupio","Cashback","Cosmetics and beauty accessories"],
+  ["Frumusete","Notino","Cashback","Perfumes and cosmetics online"],
+  ["Frumusete","Yves Rocher","Cashback","Natural cosmetics"],
+  ["Frumusete","Esteto.ro","Cashback","Beauty services and products"],
+  ["Frumusete","Edenboutique.ro","Cashback","Beauty boutique"],
+  ["Frumusete","Fashion Days","Cashback","Fashion and beauty online"],
+  ["Frumusete","Douglas","Cashback","Perfumes and beauty"],
+  ["Copii","Lego","Cashback","Toys"],
+  ["Copii","Mamasicopilul","Cashback","Baby and children products"],
+  ["Copii","Kinderauto","Cashback","Kids ride-on toys"],
+  ["Copii","Babyneeds","Cashback","Baby products"],
+  ["Copii","UniqueStore","Cashback","Fashion for all ages"],
+  ["Copii","WarsawSneakerStore","Cashback","Sneakers"],
+  ["Copii","Amazon.de","Cashback (3-5%)","Toys and children categories"],
+  ["Copii","Redgoblin","Cashback","Gaming and pop culture merchandise"],
+  ["Copii","Gameology","Cashback","Gaming and toy store"],
+  ["Copii","Next","Cashback","Children and adult clothing"],
+  ["Copii","Carturesti","Cashback","Bookstore - children's books"],
+  ["Copii","Autograf","Cashback","Children's products"],
+  ["Masina","Autonom Rent","Cashback","Car rental"],
+  ["Masina","Anvelope Autobon","Cashback","Tyres and wheels"],
+  ["Masina","Drumbun","Cashback","Car parts and accessories"],
+  ["Masina","Faragrija","Cashback","Road assistance and car services"],
+  ["Masina","Blue / PPC Blue","Cashback","EV charging and mobility"],
+  ["Masina","9695.ro","Cashback","Car services"],
+  ["Masina","Autonom Drive","Cashback","Premium private transport"]
+ ]
+};
+let benefitsTab="cec";
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function bMatch(arr,q){ return !q || arr.join(" ").toLowerCase().indexOf(q)>=0; }
+function setBenefitsTab(t){ benefitsTab=t; document.getElementById("benSearch").value="";
+  document.querySelectorAll(".subtab").forEach(b=>b.classList.toggle("active",b.dataset.bt===t)); renderBenefitsBody(); }
+function renderBenefits(){ document.querySelectorAll(".subtab").forEach(b=>b.classList.toggle("active",b.dataset.bt===benefitsTab)); renderBenefitsBody(); }
+function bcard(title,meta,details,tag){
+  return '<div class="bcard"><div class="bt">'+esc(title)+'</div>'+
+    (meta?'<div class="bm">'+esc(meta)+'</div>':'')+
+    (details?'<div class="bd">'+esc(details)+'</div>':'')+
+    (tag?'<span class="btag">'+esc(tag)+'</span>':'')+'</div>';
+}
+function renderBenefitsBody(){
+  const q=(document.getElementById("benSearch").value||"").trim().toLowerCase();
+  const w=document.getElementById("benefitsBody"); let h="";
+  if(benefitsTab==="cec"){
+    const rows=BENEFITS.cec.filter(r=>bMatch(r,q));
+    h+='<div class="bsec">CEC Bank Visa Infinite - Benefits <span class="cnt">'+rows.length+'</span></div>';
+    h+= rows.length ? rows.map(r=>bcard(r[0],r[1],r[2])).join("") : '<div class="bempty">No matches.</div>';
+  } else if(benefitsTab==="visa"){
+    const pr=BENEFITS.visaPriv.filter(r=>bMatch(r,q));
+    const ho=BENEFITS.visaHotels.filter(r=>bMatch(r,q));
+    const of=BENEFITS.visaOffers.filter(r=>bMatch(r,q));
+    if(pr.length){ h+='<div class="bsec">Exclusive Privileges <span class="cnt">'+pr.length+'</span></div>';
+      h+=pr.map(r=>bcard(r[1],r[0],r[2],r[3])).join(""); }
+    if(ho.length){ h+='<div class="bsec">Visa Luxury Hotels Collection <span class="cnt">'+ho.length+'</span></div>';
+      h+='<div class="bgrid">'+ho.map(r=>bcard(r[0],"",r[1])).join("")+'</div>'; }
+    if(of.length){ h+='<div class="bsec">Special Offers & Discounts <span class="cnt">'+of.length+'</span></div>';
+      h+=of.map(r=>bcard(r[1],r[0]+" - "+r[2],"",r[3])).join(""); }
+    if(!pr.length&&!ho.length&&!of.length) h+='<div class="bempty">No matches.</div>';
+  } else {
+    const cats={}; BENEFITS.bazar.forEach(r=>{ if(bMatch(r,q)){ (cats[r[0]]=cats[r[0]]||[]).push(r); } });
+    const keys=Object.keys(cats);
+    h+='<p class="hint" style="margin:0 0 4px">Cashback % are set per offer in Home’Bank and change monthly. (*) marks a confirmed rate.</p>';
+    if(!keys.length){ h+='<div class="bempty">No matches.</div>'; }
+    keys.forEach(c=>{ h+='<div class="bsec">'+esc(c)+' <span class="cnt">'+cats[c].length+'</span></div>';
+      h+='<div class="bgrid">'+cats[c].map(r=>bcard(r[1],r[2],r[3])).join("")+'</div>'; });
+  }
+  w.innerHTML=h;
+}
+
+/* init */
+render();
+ensureRentMonths();
+updateLinkUI();
+applyTheme(false);
+tryRelink();
+setInterval(updatePaydayInfo, 3600000);
+</script>
+<input type="file" id="haImp" accept="application/json" style="display:none">
+<div style="position:fixed;bottom:12px;right:12px;z-index:99999;display:flex;gap:6px">
+  <button type="button" onclick="haExport()" style="font-size:12px;padding:6px 11px;border-radius:8px;border:1px solid rgba(128,128,128,.4);background:rgba(255,255,255,.9);color:#222;cursor:pointer">Export</button>
+  <button type="button" onclick="document.getElementById('haImp').click()" style="font-size:12px;padding:6px 11px;border-radius:8px;border:1px solid rgba(128,128,128,.4);background:rgba(255,255,255,.9);color:#222;cursor:pointer">Import</button>
+</div>
+<script>
+function haExport(){try{var b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="salary-manager-data.json";a.click();}catch(e){}}
+document.getElementById("haImp").onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var obj=JSON.parse(r.result);if(typeof migrate==="function")obj=migrate(obj);data=obj;persist();if(typeof render==="function")render();try{toast("Imported into Home Assistant");}catch(_){}}catch(err){alert("Invalid JSON file");}};r.readAsText(f);e.target.value="";};
+</script>
+</body>
+</html>
