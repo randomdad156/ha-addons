@@ -1,5 +1,5 @@
 name: Salary Manager
-version: "1.0.0"
+version: "1.0.1"
 slug: salary_manager
 description: Salary Manager — data stored on your Home Assistant
 url: https://github.com/randomdad156/ha-addons
