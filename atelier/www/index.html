@@ -165,8 +165,9 @@ let saveTimer = null;
 const FSA = ('showSaveFilePicker' in window);
 let pendingHandle=null;
 let editedWhileDisconnected=false;
-const APP_VERSION='1.2.0';
+const APP_VERSION='1.3.0';
 const CHANGELOG=[
+  {v:'1.3.0',date:'2026-08-17',notes:'Trendyol shipping now follows the Under-Threshold Support Model: a reduced price-band fee (3/4/5/8) applies automatically when the Trendyol selling price is under the threshold (125 RON) and the parcel is under the max weight (10 kg); otherwise the standard weight-based FAN rate applies. Threshold, max weight, and both fee tables are editable in Settings.'},
   {v:'1.2.0',date:'2026-08-17',notes:'Trendyol shipping is now weight-based (FAN Courier, Romania) using each parcel weight, replacing the old sale-price bands. Parcels under 1 kg = 10.55 RON; the Settings shipping-bands editor is now in kg.'},
   {v:'1.1.1',date:'2026-06-02',notes:'Product/pack code is now editable when editing. Renaming a code checks for collisions and automatically remaps any pack components that referenced the old code.'},
   {v:'1.1.0',date:'2026-06-02',notes:'Adopted semantic versioning: features bump the minor version, fixes bump the patch. This 1.1.0 rolls up the recent feature work (pack builder, inventory materials with automatic stock decrement, Trendyol shipping bands) and the product-breakdown cleanup. The 1.0.x history below is kept as-is.'},
@@ -219,11 +220,12 @@ function setStorageUI(){
 function flashSaving(){const dot=document.getElementById('storDot');dot.className='dotmini save';}
 
 function migrate(d){
-  d.settings=Object.assign({currency:'RON',profitPerHour:4,pfaTaxRate:10,lowStockThreshold:5,incomeCountsStatuses:['Delivered','Shipped'],year:2026},d.settings||{});
+  d.settings=Object.assign({currency:'RON',profitPerHour:4,pfaTaxRate:10,lowStockThreshold:5,shippingThreshold:125,shippingMaxKg:10,incomeCountsStatuses:['Delivered','Shipped'],year:2026},d.settings||{});
   d.platforms=d.platforms||[];d.geniusBands=d.geniusBands||[];d.products=d.products||[];
   d.orders=d.orders||[];d.inventory=d.inventory||[];d.expenses=d.expenses||[];
   d.platforms.forEach(p=>{if(p.pfa===undefined)p.pfa=/emag|trendyol|trendiol|olx/i.test(p.name);});
   if(d._shipUnit!=='kg'){d.shippingBands=[{min:0,max:3,fee:10.55,tva:0,totalFee:10.55},{min:3,max:4,fee:11.31,tva:0,totalFee:11.31},{min:4,max:5,fee:12.07,tva:0,totalFee:12.07},{min:5,max:6,fee:12.83,tva:0,totalFee:12.83},{min:6,max:7,fee:13.59,tva:0,totalFee:13.59},{min:7,max:8,fee:14.35,tva:0,totalFee:14.35},{min:8,max:9,fee:15.11,tva:0,totalFee:15.11},{min:9,max:12,fee:17.38,tva:0,totalFee:17.38},{min:12,max:15,fee:19.66,tva:0,totalFee:19.66},{min:15,max:20,fee:23.46,tva:0,totalFee:23.46},{min:20,max:25,fee:27.78,tva:0,totalFee:27.78},{min:25,max:30,fee:31.65,tva:0,totalFee:31.65},{min:30,max:31,fee:35.92,tva:0,totalFee:35.92}];d._shipUnit='kg';}
+  if(d.shippingReducedBands===undefined)d.shippingReducedBands=[{min:0,max:39.99,fee:3,tva:0,totalFee:3},{min:40,max:49.99,fee:4,tva:0,totalFee:4},{min:50,max:74.99,fee:5,tva:0,totalFee:5},{min:75,max:124.99,fee:8,tva:0,totalFee:8}];
   d.products.forEach(p=>{if(!p.tiers){p.tiers={};if(p.emagPlatform)p.tiers[familyOf(p.emagPlatform)]=p.emagPlatform;if(p.trendyolPlatform)p.tiers[familyOf(p.trendyolPlatform)]=p.trendyolPlatform;}if(!p.defaultPlatform||!d.platforms.some(pl=>pl.name===p.defaultPlatform)){p.defaultPlatform=p.tiers['Emag']||Object.values(p.tiers)[0]||(d.platforms[0]&&d.platforms[0].name)||'';}if(p.materialPricePerKg===undefined||p.materialPricePerKg===''){p.materialPricePerKg=((+p.materialWeight>0)&&(+p.materialCost>0))?Math.round((+p.materialCost)/((+p.materialWeight)/1000)*100)/100:100;}if(!p.materials)p.materials=[];});
   d.inventory.forEach(it=>{if(!it.id)it.id=uid();if(it.price===undefined)it.price=0;});
   d.orders.forEach(o=>{if(!o.id)o.id=uid();});
@@ -351,7 +353,8 @@ function geniusFor(price){
   const b=state.geniusBands.find(b=>price>=b.min && price<=b.max);
   return b?b.totalTax:0;
 }
-function shippingFor(kg){const bs=(state.shippingBands||[]).slice().sort((a,b)=>a.max-b.max);const b=bs.find(x=>kg<=x.max);if(b)return b.totalFee!=null?b.totalFee:(+b.fee||0);const top=bs[bs.length-1];return top?(top.totalFee!=null?top.totalFee:(+top.fee||0)):0;}
+function shippingWeightFor(kg){const bs=(state.shippingBands||[]).slice().sort((a,b)=>a.max-b.max);const b=bs.find(x=>kg<=x.max);if(b)return b.totalFee!=null?b.totalFee:(+b.fee||0);const top=bs[bs.length-1];return top?(top.totalFee!=null?top.totalFee:(+top.fee||0)):0;}
+function shippingReducedFor(price){const bs=state.shippingReducedBands||[];const b=bs.find(x=>price>=x.min&&price<=x.max);return b?(b.totalFee!=null?b.totalFee:(+b.fee||0)):0;}
 function materialCostOf(p){if(p&&p.materialPricePerKg!=null&&p.materialPricePerKg!==''){return (+p.materialWeight||0)/1000*(+p.materialPricePerKg||0);}return (+(p&&p.materialCost)||0);}
 function invById(id){return (state.inventory||[]).find(x=>x.id===id);}
 function materialsCost(materials){let s=0;(materials||[]).forEach(m=>{const it=invById(m.invId);if(it)s+=(+it.price||0)*(+m.qty||0);});return s;}
@@ -375,7 +378,16 @@ function computePrice(prod, platformName){
       genius=g;
     }
   } else if(trendyol){
-    shipping=shippingFor((+prod.materialWeight||0)/1000);
+    const kg=(+prod.materialWeight||0)/1000;
+    const wFee=shippingWeightFor(kg);
+    const thr=+state.settings.shippingThreshold||125;
+    const maxKg=+state.settings.shippingMaxKg||10;
+    if(kg<=maxKg){
+      let rg=0;
+      for(let i=0;i<6;i++){const f=(base+profit+rg+fees)/denom;const ng=shippingReducedFor(f);if(ng===rg)break;rg=ng;}
+      const pReduced=(base+profit+rg+fees)/denom;
+      shipping=(pReduced<thr)?rg:wFee;
+    } else { shipping=wFee; }
   }
   const feeAmt=genius+shipping;
   const final=(base+profit+feeAmt+fees)/denom;
@@ -837,6 +849,8 @@ function renderSettings(){
       <label class="fld">Desired profit per hour<input type="number" step="0.01" id="s_pph" value="${s.profitPerHour}"></label>
       <label class="fld">PFA tax rate (%)<input type="number" step="0.01" id="s_pfa" value="${s.pfaTaxRate}"></label>
       <label class="fld">Low-stock reorder threshold<input type="number" id="s_low" value="${s.lowStockThreshold}"></label>
+      <label class="fld">Trendyol price threshold (${cur()})<input type="number" step="0.01" id="s_thr" value="${s.shippingThreshold!=null?s.shippingThreshold:125}"></label>
+      <label class="fld">Trendyol max weight (kg)<input type="number" step="0.01" id="s_maxkg" value="${s.shippingMaxKg!=null?s.shippingMaxKg:10}"></label>
     </div>
     <div style="margin-top:14px"><div class="note" style="margin-bottom:6px">Order statuses counted as income on the dashboard:</div>
       <div class="row">${statuses.map(st=>`<label class="pill"><input type="checkbox" class="s_inc" value="${st}" ${s.incomeCountsStatuses.includes(st)?'checked':''}> ${st}</label>`).join('')}</div>
@@ -855,13 +869,23 @@ function renderSettings(){
   </div>
 
   <div class="panel">
-    <h2>Trendyol shipping bands <span class="hint">FAN Courier · Romania · by parcel weight (kg)</span></h2>
+    <h2>Trendyol shipping — standard <span class="hint">FAN Courier · Romania · by parcel weight (kg)</span></h2>
     <div class="tablewrap"><table><thead><tr><th class="num">Min kg</th><th class="num">Max kg</th><th class="num">Shipping fee</th><th class="num">TVA %</th><th class="num">Total fee</th><th></th></tr></thead><tbody>
     ${(state.shippingBands||[]).map((b,i)=>`<tr><td class="num">${b.min}</td><td class="num">${b.max}</td><td class="num">${fmt(b.fee)}</td><td class="num">${b.tva||0}</td><td class="num">${fmt(b.totalFee!=null?b.totalFee:b.fee)}</td>
       <td style="text-align:right"><button class="iconbtn" data-sedit="${i}">✎</button> <button class="iconbtn" data-sdel="${i}">🗑</button></td></tr>`).join('')}
     </tbody></table></div>
     <div class="row" style="margin-top:12px"><button class="btn sm ghost" id="sh_add">+ Add band</button></div>
-    <div class="note" style="margin-top:10px">Trendyol shipping (Taxă de expediere, FAN Courier, Romania) is charged by parcel weight and folded into the sale price. The product weight is matched to the band whose Max kg it fits. Set TVA % only if you are VAT-registered (leave 0 otherwise).</div>
+    <div class="note" style="margin-top:10px">Standard Trendyol shipping (FAN Courier, Romania), used when the Under-Threshold model does NOT apply (selling price ≥ threshold, or over max kg). Matched by parcel weight to the band whose Max kg it fits. Set TVA % only if VAT-registered.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Trendyol shipping — Under-Threshold reduced <span class="hint">by selling price</span></h2>
+    <div class="tablewrap"><table><thead><tr><th class="num">Min price</th><th class="num">Max price</th><th class="num">Shipping fee</th><th class="num">TVA %</th><th class="num">Total fee</th><th></th></tr></thead><tbody>
+    ${(state.shippingReducedBands||[]).map((b,i)=>`<tr><td class="num">${b.min}</td><td class="num">${b.max}</td><td class="num">${fmt(b.fee)}</td><td class="num">${b.tva||0}</td><td class="num">${fmt(b.totalFee!=null?b.totalFee:b.fee)}</td>
+      <td style="text-align:right"><button class="iconbtn" data-redit="${i}">✎</button> <button class="iconbtn" data-rdel="${i}">🗑</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="row" style="margin-top:12px"><button class="btn sm ghost" id="rd_add">+ Add band</button></div>
+    <div class="note" style="margin-top:10px">Trendyol Under-Threshold Support Model: when a Trendyol sale is under the threshold (${s.shippingThreshold||125} RON) and the parcel is ≤ ${s.shippingMaxKg||10} kg, this reduced fee (by selling price) applies instead of the standard weight rate. The app picks per product automatically.</div>
   </div>
 
   <div class="panel">
@@ -898,7 +922,7 @@ function renderSettings(){
     <div class="note">${CHANGELOG.map(c=>`<div style="margin-bottom:6px"><b>v${c.v}</b> — ${escapeHtml(c.notes)}</div>`).join('')}</div>
   </div>`;
   document.getElementById('s_save').onclick=()=>{
-    s.currency=val('s_cur')||'RON';s.profitPerHour=+val('s_pph')||0;s.pfaTaxRate=+val('s_pfa')||0;s.lowStockThreshold=+val('s_low')||0;
+    s.currency=val('s_cur')||'RON';s.profitPerHour=+val('s_pph')||0;s.pfaTaxRate=+val('s_pfa')||0;s.lowStockThreshold=+val('s_low')||0;s.shippingThreshold=+val('s_thr')||125;s.shippingMaxKg=+val('s_maxkg')||10;
     s.incomeCountsStatuses=[...document.querySelectorAll('.s_inc:checked')].map(c=>c.value);
     save();toast('Settings saved');render();
   };
@@ -908,6 +932,9 @@ function renderSettings(){
   const _sha=document.getElementById('sh_add');if(_sha)_sha.onclick=()=>shippingModal();
   content.querySelectorAll('[data-sedit]').forEach(b=>b.onclick=()=>shippingModal(+b.dataset.sedit));
   content.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=()=>{const i=+b.dataset.sdel;openConfirm('Delete this shipping band?',()=>{state.shippingBands.splice(i,1);save();renderSettings();});});
+  const _rda=document.getElementById('rd_add');if(_rda)_rda.onclick=()=>reducedModal();
+  content.querySelectorAll('[data-redit]').forEach(b=>b.onclick=()=>reducedModal(+b.dataset.redit));
+  content.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=()=>{const i=+b.dataset.rdel;openConfirm('Delete this reduced band?',()=>{state.shippingReducedBands.splice(i,1);save();renderSettings();});});
   document.getElementById('d_connect').onclick=handleConnectButton;
   document.getElementById('d_export').onclick=exportData;
   document.getElementById('d_import').onclick=()=>document.getElementById('fileInput').click();
@@ -944,6 +971,21 @@ function shippingModal(i){
   function calc(){const t=(+val('sh_fee')||0)*(1+(+val('sh_tva')||0)/100);document.getElementById('sh_calc').textContent='Total fee = '+fmt(t)+' '+cur();return t;}
   ['sh_fee','sh_tva'].forEach(idd=>document.getElementById(idd).oninput=calc);calc();
   document.getElementById('sh_save').onclick=()=>{const obj={min:+val('sh_min')||0,max:+val('sh_max')||0,fee:+val('sh_fee')||0,tva:+val('sh_tva')||0,totalFee:calc()};if(i!=null)Object.assign(state.shippingBands[i],obj);else{state.shippingBands=state.shippingBands||[];state.shippingBands.push(obj);}state.shippingBands.sort((a,b)=>a.min-b.min);closeModal();save();renderSettings();toast('Saved');};
+}
+function reducedModal(i){
+  const b=(i!=null)?state.shippingReducedBands[i]:{min:0,max:0,fee:0,tva:0,totalFee:0};
+  openModal(`<h3>${i!=null?'Edit':'New'} reduced band</h3>
+    <div class="grid2">
+      <label class="fld">Min price (${cur()})<input type="number" step="0.01" id="rd_min" value="${b.min}"></label>
+      <label class="fld">Max price (${cur()})<input type="number" step="0.01" id="rd_max" value="${b.max}"></label>
+      <label class="fld">Shipping fee (${cur()})<input type="number" step="0.01" id="rd_fee" value="${b.fee}"></label>
+      <label class="fld">TVA %<input type="number" step="0.01" id="rd_tva" value="${b.tva||0}"></label>
+    </div>
+    <div class="note" id="rd_calc" style="margin-top:8px"></div>
+    <div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="rd_save">Save</button></div>`);
+  function calc(){const t=(+val('rd_fee')||0)*(1+(+val('rd_tva')||0)/100);document.getElementById('rd_calc').textContent='Total fee = '+fmt(t)+' '+cur();return t;}
+  ['rd_fee','rd_tva'].forEach(idd=>document.getElementById(idd).oninput=calc);calc();
+  document.getElementById('rd_save').onclick=()=>{const obj={min:+val('rd_min')||0,max:+val('rd_max')||0,fee:+val('rd_fee')||0,tva:+val('rd_tva')||0,totalFee:calc()};if(i!=null)Object.assign(state.shippingReducedBands[i],obj);else{state.shippingReducedBands=state.shippingReducedBands||[];state.shippingReducedBands.push(obj);}state.shippingReducedBands.sort((a,b)=>a.min-b.min);closeModal();save();renderSettings();toast('Saved');};
 }
 
 /* ============ Backup import/export ============ */
