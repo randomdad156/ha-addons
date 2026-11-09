@@ -165,8 +165,9 @@ let saveTimer = null;
 const FSA = ('showSaveFilePicker' in window);
 let pendingHandle=null;
 let editedWhileDisconnected=false;
-const APP_VERSION='1.3.0';
+const APP_VERSION='1.4.0';
 const CHANGELOG=[
+  {v:'1.4.0',date:'2026-11-09',notes:'Orders can now contain multiple items: one order holds several products, each with its own quantity and sell price (per-item suggested prices, inventory still decrements per item, dashboard revenue split per product). Also fixed same-day ordering in the Orders list - orders now remember when they were created, so the newest-added appears first within the same date.'},
   {v:'1.3.0',date:'2026-08-17',notes:'Trendyol shipping now follows the Under-Threshold Support Model: a reduced price-band fee (3/4/5/8) applies automatically when the Trendyol selling price is under the threshold (125 RON) and the parcel is under the max weight (10 kg); otherwise the standard weight-based FAN rate applies. Threshold, max weight, and both fee tables are editable in Settings.'},
   {v:'1.2.0',date:'2026-08-17',notes:'Trendyol shipping is now weight-based (FAN Courier, Romania) using each parcel weight, replacing the old sale-price bands. Parcels under 1 kg = 10.55 RON; the Settings shipping-bands editor is now in kg.'},
   {v:'1.1.1',date:'2026-06-02',notes:'Product/pack code is now editable when editing. Renaming a code checks for collisions and automatically remaps any pack components that referenced the old code.'},
@@ -228,7 +229,7 @@ function migrate(d){
   if(d.shippingReducedBands===undefined)d.shippingReducedBands=[{min:0,max:39.99,fee:3,tva:0,totalFee:3},{min:40,max:49.99,fee:4,tva:0,totalFee:4},{min:50,max:74.99,fee:5,tva:0,totalFee:5},{min:75,max:124.99,fee:8,tva:0,totalFee:8}];
   d.products.forEach(p=>{if(!p.tiers){p.tiers={};if(p.emagPlatform)p.tiers[familyOf(p.emagPlatform)]=p.emagPlatform;if(p.trendyolPlatform)p.tiers[familyOf(p.trendyolPlatform)]=p.trendyolPlatform;}if(!p.defaultPlatform||!d.platforms.some(pl=>pl.name===p.defaultPlatform)){p.defaultPlatform=p.tiers['Emag']||Object.values(p.tiers)[0]||(d.platforms[0]&&d.platforms[0].name)||'';}if(p.materialPricePerKg===undefined||p.materialPricePerKg===''){p.materialPricePerKg=((+p.materialWeight>0)&&(+p.materialCost>0))?Math.round((+p.materialCost)/((+p.materialWeight)/1000)*100)/100:100;}if(!p.materials)p.materials=[];});
   d.inventory.forEach(it=>{if(!it.id)it.id=uid();if(it.price===undefined)it.price=0;});
-  d.orders.forEach(o=>{if(!o.id)o.id=uid();});
+  d.orders.forEach(o=>{if(!o.id)o.id=uid();if(!o.items||!o.items.length){o.items=[{product:o.product||'',quantity:+o.quantity||1,itemSellPrice:+o.itemSellPrice||0}];}delete o.product;delete o.quantity;delete o.itemSellPrice;if(!o.createdAt){const _t=parseInt(String(o.id).slice(1,9),36);o.createdAt=(_t>0&&_t<4000000000000)?_t:0;}});
   return d;
 }
 
@@ -336,7 +337,7 @@ function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&
 function isEmag(name){return /emag/i.test(name||'');}
 function platformByName(n){return state.platforms.find(p=>p.name===n);}
 function productByName(n){return state.products.find(p=>p.name===n);}
-function productsByPopularity(){const cnt={};state.orders.forEach(o=>{cnt[o.product]=(cnt[o.product]||0)+1;});return state.products.slice().sort((a,b)=>(cnt[b.name]||0)-(cnt[a.name]||0)||a.name.localeCompare(b.name));}
+function productsByPopularity(){const cnt={};state.orders.forEach(o=>{orderItems(o).forEach(i=>{cnt[i.product]=(cnt[i.product]||0)+1;});});return state.products.slice().sort((a,b)=>(cnt[b.name]||0)-(cnt[a.name]||0)||a.name.localeCompare(b.name));}
 function familyOf(name){return ((name||'').replace(/\s*\d+\s*$/,'').trim())||(name||'');}
 function platformFamilies(){const fam={},order=[];state.platforms.forEach(p=>{const f=familyOf(p.name);if(!fam[f]){fam[f]=[];order.push(f);}fam[f].push(p);});return order.map(f=>[f,fam[f]]);}
 function multiFamilies(){return platformFamilies().filter(fa=>fa[1].length>1);}
@@ -395,7 +396,10 @@ function computePrice(prod, platformName){
 }
 
 /* ============ Aggregations ============ */
-function orderTotal(o){return (+o.itemSellPrice||0)*(+o.quantity||0);}
+function orderItems(o){return (o.items&&o.items.length)?o.items:[{product:o.product||'',quantity:+o.quantity||1,itemSellPrice:+o.itemSellPrice||0}];}
+function orderQty(o){return orderItems(o).reduce((s,i)=>s+(+i.quantity||0),0);}
+function orderLabel(o){return orderItems(o).map(i=>((+i.quantity||0)>1?i.quantity+'\u00d7 ':'')+i.product).join(', ');}
+function orderTotal(o){return orderItems(o).reduce((s,i)=>s+(+i.itemSellPrice||0)*(+i.quantity||0),0);}
 function countsAsIncome(o){return state.settings.incomeCountsStatuses.includes(o.status);}
 function yearOf(iso){return iso?parseInt(iso.slice(0,4),10):null;}
 function currentYear(){return new Date().getFullYear();}
@@ -463,7 +467,7 @@ function renderDashboard(){
   const low=state.inventory.filter(i=>i.qty<=state.settings.lowStockThreshold);
   // revenue by product (selected year)
   const byProd={};
-  yr.filter(countsAsIncome).forEach(o=>{byProd[o.product]=(byProd[o.product]||0)+orderTotal(o);});
+  yr.filter(countsAsIncome).forEach(o=>{orderItems(o).forEach(i=>{byProd[i.product]=(byProd[i.product]||0)+(+i.itemSellPrice||0)*(+i.quantity||0);});});
   const archived=(viewYear!=='all'&&viewYear<currentYear());
   const topProd=Object.entries(byProd).sort((a,b)=>b[1]-a[1]).slice(0,6);
   content.innerHTML=`
@@ -525,11 +529,11 @@ function renderOrders(){document.getElementById('topActions').innerHTML='';
   const statuses=['Pending','In Progress','Shipped','Delivered','Returned','Cancelled'];
   let rows=ordersForYear();
   const f=orderFilters;
-  if(f.q)rows=rows.filter(o=>(o.product+' '+o.pointOfContact+' '+o.notes).toLowerCase().includes(f.q.toLowerCase()));
+  if(f.q)rows=rows.filter(o=>(orderLabel(o)+' '+o.pointOfContact+' '+o.notes).toLowerCase().includes(f.q.toLowerCase()));
   if(f.status)rows=rows.filter(o=>o.status===f.status);
   if(f.platform)rows=rows.filter(o=>o.platform===f.platform);
   if(f.month!=='')rows=rows.filter(o=>monthOf(o.orderDate)==+f.month);
-  rows.sort((a,b)=>{let x=a[f.sort],y=b[f.sort];if(f.sort==='itemSellPrice'){x=orderTotal(a);y=orderTotal(b);}if(x<y)return -1*f.dir;if(x>y)return 1*f.dir;return 0;});
+  rows.sort((a,b)=>{let x=a[f.sort],y=b[f.sort];if(f.sort==='itemSellPrice'){x=orderTotal(a);y=orderTotal(b);}else if(f.sort==='quantity'){x=orderQty(a);y=orderQty(b);}else if(f.sort==='product'){x=orderLabel(a).toLowerCase();y=orderLabel(b).toLowerCase();}if(x<y)return -1*f.dir;if(x>y)return 1*f.dir;return (b.createdAt||0)-(a.createdAt||0);});
   const sumTotal=rows.reduce((s,o)=>s+orderTotal(o),0);
   content.innerHTML=`
   <div class="filters">
@@ -546,11 +550,11 @@ function renderOrders(){document.getElementById('topActions').innerHTML='';
     <th data-s="pointOfContact">Contact</th><th></th></tr></thead><tbody>
     ${rows.length?rows.map(o=>`<tr>
       <td>${o.orderDate||''}</td>
-      <td>${escapeHtml(o.product)}${o.notes?` <span class="pill" title="${escapeHtml(o.notes)}">note</span>`:''}</td>
-      <td class="num">${o.quantity}</td>
+      <td>${escapeHtml(orderLabel(o))}${o.notes?` <span class="pill" title="${escapeHtml(o.notes)}">note</span>`:''}</td>
+      <td class="num">${orderQty(o)}</td>
       <td>${escapeHtml(o.platform)}</td>
       <td><select class="statussel b-${(o.status||'').replace(' ','')}" data-status="${o.id}" title="Change status">${statuses.map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
-      <td class="num">${fmt(o.itemSellPrice)}<div style="color:var(--muted);font-size:11px">${fmt(orderTotal(o))}</div></td>
+      <td class="num">${(function(){const it=orderItems(o);if(it.length===1)return fmt(it[0].itemSellPrice)+'<div style="color:var(--muted);font-size:11px">'+fmt(orderTotal(o))+'</div>';return it.map(i=>'<div style="color:var(--muted);font-size:11px">'+(+i.quantity||0)+'\u00d7 '+fmt(i.itemSellPrice)+'</div>').join('')+'<div>'+fmt(orderTotal(o))+'</div>';})()}</td>
       <td>${escapeHtml(o.pointOfContact||'')}</td>
       <td style="text-align:right"><button class="iconbtn" data-edit="${o.id}">✎</button> <button class="iconbtn" data-del="${o.id}">🗑</button></td>
     </tr>`).join(''):`<tr><td colspan="8" class="empty">No orders match.</td></tr>`}
@@ -565,36 +569,53 @@ function renderOrders(){document.getElementById('topActions').innerHTML='';
   content.querySelectorAll('select[data-status]').forEach(sel=>sel.onchange=()=>{const o=state.orders.find(x=>x.id===sel.dataset.status);if(o){o.status=sel.value;sel.className='statussel b-'+sel.value.replace(' ','');save();toast('Status → '+sel.value);}});
 }
 function orderModal(id){
-  const o=id?state.orders.find(x=>x.id===id):{id:null,product:(productsByPopularity()[0]&&productsByPopularity()[0].name)||'',quantity:1,status:'Pending',platform:'',orderDate:new Date().toISOString().slice(0,10),itemSellPrice:0,pointOfContact:'',notes:''};
-  const curProd=productByName(o.product);
-  if(!o.platform)o.platform=defaultChannelFor(curProd);
+  const ex=id?state.orders.find(x=>x.id===id):null;
+  const o=ex?deepClone(ex):{id:null,status:'Pending',platform:'',orderDate:new Date().toISOString().slice(0,10),pointOfContact:'',notes:''};
+  let items=ex?orderItems(ex).map(i=>({product:i.product,quantity:+i.quantity||1,itemSellPrice:+i.itemSellPrice||0})):[{product:(productsByPopularity()[0]&&productsByPopularity()[0].name)||'',quantity:1,itemSellPrice:0}];
+  if(!o.platform)o.platform=defaultChannelFor(productByName(items[0].product));
   const statuses=['Pending','In Progress','Shipped','Delivered','Returned','Cancelled'];
   openModal(`<h3>${id?'Edit':'New'} order</h3>
     <div class="grid2">
-      <label class="fld">Product<select id="f_product">${productsByPopularity().map(p=>`<option ${o.product===p.name?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></label>
-      <label class="fld">Platform<select id="f_platform">${platformOptions(curProd,o.platform)}</select></label>
-      <label class="fld">Quantity<input type="number" id="f_quantity" value="${o.quantity}" min="1"></label>
+      <label class="fld">Platform<select id="f_platform">${platformOptions(productByName(items[0].product),o.platform)}</select></label>
       <label class="fld">Order date<input type="date" id="f_orderDate" value="${o.orderDate||''}"></label>
       <label class="fld">Status<select id="f_status">${statuses.map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></label>
-      <label class="fld">Item sell price (${cur()})<input type="number" step="0.01" id="f_price" value="${o.itemSellPrice}"></label>
       <label class="fld">Point of contact<input id="f_contact" value="${escapeHtml(o.pointOfContact||'')}"></label>
-      <div class="fld" style="justify-content:flex-end"><div class="note" id="f_suggest"></div></div>
+      <div style="grid-column:1/3"><div style="font-size:12px;font-weight:500;margin-bottom:6px">Items</div>
+        <div id="f_items" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px"><button type="button" class="btn sm ghost" id="f_addItem">+ Add item</button><span class="note" id="f_ototal"></span></div>
+      </div>
       <label class="fld" style="grid-column:1/3">Notes<textarea id="f_notes" rows="2">${escapeHtml(o.notes||'')}</textarea></label>
     </div>
     <div class="actions">
       <button class="btn ghost" onclick="closeModal()">Cancel</button>
       <button class="btn" id="f_save">${id?'Save':'Add order'}</button>
     </div>`);
-  function suggest(){
-    const p=productByName(val('f_product'));const plat=val('f_platform');
-    if(p){const c=computePrice(p,plat);document.getElementById('f_suggest').innerHTML=`Suggested price for <b>${escapeHtml(plat)}</b>: <b>${money(c.final)}</b> <button class="btn sm ghost" id="useSug">Use</button>`;
-      const u=document.getElementById('useSug');if(u)u.onclick=()=>{document.getElementById('f_price').value=Math.round(c.final*100)/100;};}
+  const wrap=document.getElementById('f_items');
+  function totalLbl(){const t=items.reduce((s,i)=>s+(+i.itemSellPrice||0)*(+i.quantity||0),0);document.getElementById('f_ototal').innerHTML='Order total: <b>'+money(t)+'</b>';}
+  function rowsHtml(){
+    const plat=val('f_platform');
+    wrap.innerHTML=items.map((it,idx)=>{
+      const p=productByName(it.product);const c=p?computePrice(p,plat):null;
+      return `<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <label class="fld" style="flex:2;min-width:150px">Product<select data-ip="${idx}">${productsByPopularity().map(pp=>`<option ${it.product===pp.name?'selected':''}>${escapeHtml(pp.name)}</option>`).join('')}</select></label>
+        <label class="fld" style="width:70px">Qty<input type="number" min="1" data-iq="${idx}" value="${it.quantity}"></label>
+        <label class="fld" style="width:110px">Price (${cur()})<input type="number" step="0.01" data-ic="${idx}" value="${it.itemSellPrice}"></label>
+        <div class="fld" style="flex:1;min-width:130px"><span class="note">${c?`Suggested: <b>${money(c.final)}</b> <button type="button" class="btn sm ghost" data-iu="${idx}">Use</button>`:''}</span></div>
+        ${items.length>1?`<button type="button" class="iconbtn" data-ix="${idx}" title="Remove item">\u{1F5D1}</button>`:''}
+      </div>`;}).join('');
+    wrap.querySelectorAll('[data-ip]').forEach(s=>s.onchange=()=>{const i=+s.dataset.ip;items[i].product=s.value;if(i===0){const sel=document.getElementById('f_platform');const p=productByName(items[0].product);const keep=sel.value;sel.innerHTML=platformOptions(p,keep&&channelsForProduct(p).indexOf(keep)!==-1?keep:defaultChannelFor(p));}rowsHtml();});
+    wrap.querySelectorAll('[data-iq]').forEach(s=>s.oninput=()=>{items[+s.dataset.iq].quantity=+s.value||1;totalLbl();});
+    wrap.querySelectorAll('[data-ic]').forEach(s=>s.oninput=()=>{items[+s.dataset.ic].itemSellPrice=+s.value||0;totalLbl();});
+    wrap.querySelectorAll('[data-iu]').forEach(b=>b.onclick=()=>{const i=+b.dataset.iu;const p=productByName(items[i].product);if(p){const c=computePrice(p,val('f_platform'));items[i].itemSellPrice=Math.round(c.final*100)/100;rowsHtml();}});
+    wrap.querySelectorAll('[data-ix]').forEach(b=>b.onclick=()=>{items.splice(+b.dataset.ix,1);rowsHtml();});
+    totalLbl();
   }
-  document.getElementById('f_product').onchange=()=>{const p=productByName(val('f_product'));const sel=document.getElementById('f_platform');sel.innerHTML=platformOptions(p,defaultChannelFor(p));suggest();};
-  document.getElementById('f_platform').onchange=suggest;suggest();
+  document.getElementById('f_addItem').onclick=()=>{items.push({product:(productsByPopularity()[0]&&productsByPopularity()[0].name)||'',quantity:1,itemSellPrice:0});rowsHtml();};
+  document.getElementById('f_platform').onchange=rowsHtml;
+  rowsHtml();
   document.getElementById('f_save').onclick=()=>{
-    const obj={product:val('f_product'),platform:val('f_platform'),quantity:+val('f_quantity')||1,orderDate:val('f_orderDate'),status:val('f_status'),itemSellPrice:+val('f_price')||0,pointOfContact:val('f_contact'),notes:val('f_notes')};
-    if(id){Object.assign(state.orders.find(x=>x.id===id),obj);}else{obj.id=uid();state.orders.push(obj);const _pr=productByName(obj.product);if(_pr&&_pr.materials&&_pr.materials.length){_pr.materials.forEach(m=>{const _it=invById(m.invId);if(_it)_it.qty=Math.max(0,(+_it.qty||0)-(+m.qty||0)*(+obj.quantity||0));});}}
+    const obj={platform:val('f_platform'),orderDate:val('f_orderDate'),status:val('f_status'),pointOfContact:val('f_contact'),notes:val('f_notes'),items:items.map(i=>({product:i.product,quantity:+i.quantity||1,itemSellPrice:+i.itemSellPrice||0}))};
+    if(id){Object.assign(state.orders.find(x=>x.id===id),obj);}else{obj.id=uid();obj.createdAt=Date.now();state.orders.push(obj);obj.items.forEach(it=>{const _pr=productByName(it.product);if(_pr&&_pr.materials&&_pr.materials.length){_pr.materials.forEach(m=>{const _it=invById(m.invId);if(_it)_it.qty=Math.max(0,(+_it.qty||0)-(+m.qty||0)*(+it.quantity||0));});}});}
     closeModal();save();renderOrders();toast('Order saved');
   };
 }
@@ -1003,7 +1024,7 @@ function closeModal(){modalBg.classList.remove('open');if(modalBg._cancel){const
 modalBg.onclick=e=>{/* click-outside intentionally does NOT close; use Save/Cancel */};
 function openConfirm(msg,fn){openModal(`<h3>Confirm</h3><p class="note">${escapeHtml(msg)}</p><div class="actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn danger" id="cf_ok">Confirm</button></div>`);document.getElementById('cf_ok').onclick=()=>{closeModal();fn();};}
 function confirmDel(type,id){
-  if(type==='order'){const o=state.orders.find(x=>x.id===id);openConfirm('Delete order "'+o.product+'"?',()=>{state.orders=state.orders.filter(x=>x.id!==id);save();renderOrders();});}
+  if(type==='order'){const o=state.orders.find(x=>x.id===id);openConfirm('Delete order "'+orderLabel(o)+'"?',()=>{state.orders=state.orders.filter(x=>x.id!==id);save();renderOrders();});}
   if(type==='product'){const p=state.products.find(x=>x.code===id);openConfirm('Delete product "'+p.name+'"?',()=>{state.products=state.products.filter(x=>x.code!==id);save();renderProducts();});}
 }
 let toastTimer;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
