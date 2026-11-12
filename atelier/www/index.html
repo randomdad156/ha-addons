@@ -165,8 +165,9 @@ let saveTimer = null;
 const FSA = ('showSaveFilePicker' in window);
 let pendingHandle=null;
 let editedWhileDisconnected=false;
-const APP_VERSION='1.4.0';
+const APP_VERSION='1.4.1';
 const CHANGELOG=[
+  {v:'1.4.1',date:'2026-11-12',notes:'Layout fixes for multi-item orders: each item now shows on its own line in the Orders table (long combined names were pushing the edit/delete buttons off-screen), and in the order dialog the product dropdown gets a full-width line so long product names are readable.'},
   {v:'1.4.0',date:'2026-11-09',notes:'Orders can now contain multiple items: one order holds several products, each with its own quantity and sell price (per-item suggested prices, inventory still decrements per item, dashboard revenue split per product). Also fixed same-day ordering in the Orders list - orders now remember when they were created, so the newest-added appears first within the same date.'},
   {v:'1.3.0',date:'2026-08-17',notes:'Trendyol shipping now follows the Under-Threshold Support Model: a reduced price-band fee (3/4/5/8) applies automatically when the Trendyol selling price is under the threshold (125 RON) and the parcel is under the max weight (10 kg); otherwise the standard weight-based FAN rate applies. Threshold, max weight, and both fee tables are editable in Settings.'},
   {v:'1.2.0',date:'2026-08-17',notes:'Trendyol shipping is now weight-based (FAN Courier, Romania) using each parcel weight, replacing the old sale-price bands. Parcels under 1 kg = 10.55 RON; the Settings shipping-bands editor is now in kg.'},
@@ -550,7 +551,7 @@ function renderOrders(){document.getElementById('topActions').innerHTML='';
     <th data-s="pointOfContact">Contact</th><th></th></tr></thead><tbody>
     ${rows.length?rows.map(o=>`<tr>
       <td>${o.orderDate||''}</td>
-      <td>${escapeHtml(orderLabel(o))}${o.notes?` <span class="pill" title="${escapeHtml(o.notes)}">note</span>`:''}</td>
+      <td>${orderItems(o).map(i=>`<div>${(+i.quantity||0)>1?i.quantity+'\u00d7 ':''}${escapeHtml(i.product)}</div>`).join('')}${o.notes?` <span class="pill" title="${escapeHtml(o.notes)}">note</span>`:''}</td>
       <td class="num">${orderQty(o)}</td>
       <td>${escapeHtml(o.platform)}</td>
       <td><select class="statussel b-${(o.status||'').replace(' ','')}" data-status="${o.id}" title="Change status">${statuses.map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
@@ -596,8 +597,8 @@ function orderModal(id){
     const plat=val('f_platform');
     wrap.innerHTML=items.map((it,idx)=>{
       const p=productByName(it.product);const c=p?computePrice(p,plat):null;
-      return `<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <label class="fld" style="flex:2;min-width:150px">Product<select data-ip="${idx}">${productsByPopularity().map(pp=>`<option ${it.product===pp.name?'selected':''}>${escapeHtml(pp.name)}</option>`).join('')}</select></label>
+      return `<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap${idx?';border-top:1px solid var(--line);padding-top:10px':''}">
+        <label class="fld" style="flex:1 1 100%">Product<select data-ip="${idx}">${productsByPopularity().map(pp=>`<option ${it.product===pp.name?'selected':''}>${escapeHtml(pp.name)}</option>`).join('')}</select></label>
         <label class="fld" style="width:70px">Qty<input type="number" min="1" data-iq="${idx}" value="${it.quantity}"></label>
         <label class="fld" style="width:110px">Price (${cur()})<input type="number" step="0.01" data-ic="${idx}" value="${it.itemSellPrice}"></label>
         <div class="fld" style="flex:1;min-width:130px"><span class="note">${c?`Suggested: <b>${money(c.final)}</b> <button type="button" class="btn sm ghost" data-iu="${idx}">Use</button>`:''}</span></div>
